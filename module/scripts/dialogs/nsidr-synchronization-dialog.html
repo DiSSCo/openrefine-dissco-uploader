@@ -1,0 +1,23 @@
+<div class="dialog-frame wikibase-dialog" style="width: 700px">
+  <div class="dialog-header" bind="dialogHeader">ODS schema alignment</div>
+  <div class="dialog-body" bind="dialogBody">
+    <p>Some explanations ...upload<a href="https://nsidr.org">nsidr.org</a></p>
+	<p>Preview of the first item:</p>
+    	<div >
+        	<pre class="ods-mapping-dialog-canvas" id="ods-mapping-dialog-preview"></pre>
+        </div>
+  </div>
+  <div class="dialog-footer" bind="dialogFooter">
+	<div bind="synchronizationInfoText" id="synchronization-info-text"></div>
+	<hr>
+    <div class="nsidr-buttons">
+      <button class="button" bind="closeButton" id="close-button">Close</button>
+      <span>
+        <span bind="loggedInText"></span>
+        <button class="button" bind="loginButton"><a bind="loginLink"></a></button>
+      </span>
+      <button disabled class="button button-disabled" bind="preSyncButton">Pre-Synchronize</button>
+      <button disabled class="button button-disabled" bind="syncButton">Synchronize</button>
+    </div>
+  </div>
+</div>
