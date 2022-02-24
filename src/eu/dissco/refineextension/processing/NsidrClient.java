@@ -4,59 +4,69 @@ import net.dona.doip.client.DoipClient;
 import net.dona.doip.client.DoipException;
 import net.dona.doip.client.PasswordAuthenticationInfo;
 import net.dona.doip.client.QueryParams;
-import net.dona.doip.client.SearchResults;
 import net.dona.doip.client.ServiceInfo;
 import net.dona.doip.client.TokenAuthenticationInfo;
 import net.dona.doip.client.transport.DoipClientResponse;
-
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
 import net.dona.doip.InDoipMessage;
 import net.dona.doip.client.DigitalObject;
 
-public class NsidrClient {
-  
-    public static String NSIDR_DOIP_SERVICE = "wildlive/service";
-    public static String NSIDR_URL = "localhost";
-    public static int NSIDR_PORT = 9000;
-    
-  /*
-  public static String NSIDR_DOIP_SERVICE = "20.5000.1025/service";
-  public static String NSIDR_URL = "nsidr.org";
-  public static int NSIDR_PORT = 9000;
-  */
+import net.cnri.cordra.api.CordraClient;
+import net.cnri.cordra.api.CordraException;
+import net.cnri.cordra.api.CordraObject;
+import net.cnri.cordra.api.SearchResults;
+import net.cnri.cordra.api.Options;
+import net.cnri.cordra.api.TokenUsingHttpCordraClient;
 
-    private DoipClient doipClient;
-    private TokenAuthenticationInfo authInfo;
-    private ServiceInfo serviceInfo;
-    
-    public NsidrClient(String token) {
-        this.doipClient = new DoipClient();
-        // the first parameter clientId can be ignored because this information is contained
-        // in the jwt token which will be handled by a custom method in Cordra
-        this.authInfo = new TokenAuthenticationInfo("", token); 
-        this.serviceInfo = new ServiceInfo(NSIDR_DOIP_SERVICE, NSIDR_URL, NSIDR_PORT);
+public class NsidrClient {
+  public static String NSIDR_URL = "https://nsidr.org";
+  private String authToken;
+  private CordraClient nsidrRestClient;
+
+  public NsidrClient(String token) {
+    try {
+      // the first parameters username and password be ignored because this information is contained
+      // in the jwt token which will be handled by a custom method in Cordra
+      this.nsidrRestClient = new TokenUsingHttpCordraClient(NSIDR_URL, "", "");
+    } catch (CordraException e) {
+      System.out.println("cordra exception" + e.getMessage());
+      e.printStackTrace();
     }
-    
-    public DigitalObject create(DigitalObject newObject) throws DoipException {
-        return this.doipClient.create(newObject, this.authInfo, this.serviceInfo);
-    }
-    
-    public DigitalObject update(DigitalObject updateObject) throws DoipException {
-        return this.doipClient.update(updateObject, this.authInfo, this.serviceInfo);
-    }
-    
-    public DigitalObject retrieve(String id) throws DoipException {
-        return this.doipClient.retrieve(id, this.authInfo, this.serviceInfo);
-    }
-    
-    public SearchResults<DigitalObject> search(String queryString) throws DoipException {
-        QueryParams queryParams = new QueryParams(0, 10);
-        return this.doipClient.search(NSIDR_DOIP_SERVICE, queryString,
-                queryParams, this.authInfo, this.serviceInfo);
-    }
-    
-    public DoipClientResponse performDoipOperationGet(String targetId, String operationId) throws DoipException {
-            return this.doipClient.performOperation(targetId,operationId,this.authInfo,null,this.serviceInfo);        
-    }
+    this.authToken = token;
+  }
+
+  public CordraObject create(CordraObject newObject) throws CordraException {
+    Options options = new Options();
+    options.setAuthHeader("Bearer " + authToken);
+    return this.nsidrRestClient.create(newObject, options);
+  }
+
+  public CordraObject update(CordraObject updateObject) throws CordraException {
+    Options options = new Options();
+    options.setAuthHeader("Bearer " + authToken);
+    return this.nsidrRestClient.update(updateObject, options);
+  }
+
+
+  public CordraObject get(String id) throws CordraException {
+    Options options = new Options();
+    options.setAuthHeader("Bearer " + authToken);
+    return this.nsidrRestClient.get(id, options);
+  }
+
+  public SearchResults<CordraObject> search(String queryString) throws CordraException {
+    Options options = new Options();
+    options.setAuthHeader("Bearer " + authToken);
+    return this.nsidrRestClient.search(queryString, options);
+  }
+
+  public JsonElement performDoipOperationGetRest(String targetId, String operationId)
+      throws CordraException {
+    Options options = new Options();
+    options.setAuthHeader("Bearer " + authToken);
+    return this.nsidrRestClient.call(targetId, operationId, new JsonObject(), options);
+  }
+
 }

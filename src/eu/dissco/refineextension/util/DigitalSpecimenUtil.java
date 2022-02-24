@@ -12,7 +12,7 @@ import com.google.gson.JsonObject;
 
 public class DigitalSpecimenUtil {
 
-    public static JsonObject rowToJsonObject(Row row, JsonNode columnMappingNode, boolean excludeId) {
+    public static JsonObject rowToJsonObject(Row row, JsonNode columnMappingNode, String digitalSpecimenId, boolean excludeId) {
         JsonObject subSectionObject = new JsonObject();
         Iterator<Map.Entry<String, JsonNode>> subSectionIter = columnMappingNode.fields();
         while (subSectionIter.hasNext()) {
@@ -22,14 +22,14 @@ public class DigitalSpecimenUtil {
             JsonNodeType nodeType = columnMappingNodeSub.getNodeType();
             switch (nodeType) {
             case OBJECT:
-                subSectionObject.add(key, rowToJsonObject(row, columnMappingNodeSub, excludeId));
+                subSectionObject.add(key, rowToJsonObject(row, columnMappingNodeSub, digitalSpecimenId, excludeId));
                 break;
             case ARRAY:
                 JsonArray array = new JsonArray();
                 Iterator<JsonNode> items = columnMappingNodeSub.elements();
                 while (items.hasNext()) {
                     JsonNode columnMappingNodeSubArray = items.next();
-                    array.add(rowToJsonObject(row, columnMappingNodeSubArray, excludeId));
+                    array.add(rowToJsonObject(row, columnMappingNodeSubArray, digitalSpecimenId, excludeId));
                 }
                 subSectionObject.add(key, array);
                 break;
@@ -41,6 +41,7 @@ public class DigitalSpecimenUtil {
                     int colIndex = colIndexNode.asInt();
                     Object cellValue = row.getCellValue(colIndex);
                     if (key == "doi") {
+                      digitalSpecimenId = (String) cellValue;
                         // since the ID is handled by Digital Objects outside of
                         // the content section
                         // we sometimes want to exclude it
@@ -49,6 +50,9 @@ public class DigitalSpecimenUtil {
                         }
                         // else rename the "doi" field into "id"
                         key = "id";
+                    }
+                    if(key == "mediatype") {
+                      key = "@type";
                     }
                     if (cellValue instanceof Integer) {
                         subSectionObject.addProperty(key, (int) row.getCellValue(colIndex));
@@ -61,10 +65,31 @@ public class DigitalSpecimenUtil {
 
             // }
         }
+        if(columnMappingNode.has("ods:authoritative")) {
+          // then it is the DigitalSpecimen json content
+          subSectionObject.add("@context", createDefaultContext());
+          subSectionObject.addProperty("@type", "ods:DigitalSpecimen");
+        }
+        if(columnMappingNode.has("ods:mediaObjects")) {
+          // then it is the MediaCollection json content
+          subSectionObject.add("@context", createDefaultContext());
+          subSectionObject.addProperty("@type", "ods:MediaCollection");
+          if(!digitalSpecimenId.isEmpty()) {
+            subSectionObject.addProperty("ods:digitalSpecimen", digitalSpecimenId);
+          }
+        }
         return subSectionObject;
     }
 
     public static JsonObject rowToJsonObject(Row row, JsonNode columnMappingSection) {
-        return rowToJsonObject(row, columnMappingSection, false);
+        return rowToJsonObject(row, columnMappingSection, "", false);
+    }
+    
+    public static JsonArray createDefaultContext() {
+      JsonObject odsObject = new JsonObject();
+      odsObject.addProperty("ods", "http://github.com/DiSSCo/openDS/ods-ontology/terms/");
+      JsonArray contextArray = new JsonArray();
+      contextArray.add(odsObject);
+      return contextArray;
     }
 }

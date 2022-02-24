@@ -1,10 +1,12 @@
-/*const KEYCLOAK_URL = "http://localhost:8081/auth";
+const KEYCLOAK_URL = "http://localhost:8081/auth";
 const KEYCLOAK_REALM = "wildlive-portal";
 const KEYCLOAK_CLIENT_ID = "test-openrefine";
-*/
+
+/*
 const KEYCLOAK_URL = "https://login-demo.dissco.eu/auth";
 const KEYCLOAK_REALM = "SynthesysPlus";
 const KEYCLOAK_CLIENT_ID = "cordra";
+*/
 
 console.log("logidoic");
 
@@ -57,7 +59,8 @@ NsidrSynchronizationDialog._updateTableRowsWithSyncStates = function() {
 	const rows = $(".data-table > tr");
 	rows.prepend(function(i) {
 		let html = '<td class="dissco-extension-element" style="background-color:';
-		const syncState = syncStatesResultData[i];
+		const rowId = theProject.rowModel.rows[i].i;
+		const syncState = syncStatesResultData[rowId];
 		switch (syncState.syncStatus) {
 			case 'synchronized':
 				html += '#d4edda';

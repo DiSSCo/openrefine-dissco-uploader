@@ -20,7 +20,6 @@ import javax.servlet.ServletException;
 import com.google.refine.util.ParsingUtilities;
 
 import com.google.gson.JsonObject;
-import eu.dissco.refineextension.schema.DisscoSchema;
 import eu.dissco.refineextension.util.DigitalSpecimenUtil;
 
 public class PreviewDigitalSpecimenCommand extends Command {
