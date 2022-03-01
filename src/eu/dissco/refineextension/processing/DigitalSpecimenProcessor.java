@@ -44,46 +44,18 @@ public class DigitalSpecimenProcessor {
     // 1. Check if there are mediaObjects in the upload content
     JsonArray mediaObjectsLocal = this.getMediaObjects(dsLocalContentToUpload);
     if (mediaObjectsLocal.size() > 0) {
-      System.out.println("size es over 0");
       // If yes, we need to deserialize the dsContentRemote in order to
       // compare the media content
       JsonElement mediaCollectionElRemote = dsContentRemote.get("ods:mediaCollection");
       if (mediaCollectionElRemote != null && mediaCollectionElRemote.isJsonPrimitive()) {
-        System.out.println("mediaCollectionElRemote");
         String mediaCollectionId = mediaCollectionElRemote.getAsString();
         if (mediaCollectionId.length() > 0) {
-          // this.nsidrClient.close();
-          // NsidrClient nsidrClient2 = new NsidrClient(authToken);
-          System.out.println("will perform with rest client " + dsRemote.id);
-
-          /*
-           * try (DoipClientResponse response =
-           * this.nsidrClient.performDoipOperationGet(dsRemote.id, "getDeserialized")) {
-           * 
-           * System.out.println("we have got the operation response!!! status: " +
-           * response.getStatus() + " it is okay: " +
-           * String.valueOf(response.getStatus().equals(DoipConstants.STATUS_OK)));
-           * System.out.println(response.getAttributes()); if
-           * (!response.getStatus().equals(DoipConstants.STATUS_OK)) {
-           * System.out.println("error when fetching deserialized"); } else {
-           * System.out.println("else!"); InDoipMessage output = response.getOutput(); for
-           * (InDoipSegment segment : output) { System.out.println("for segment!");
-           * System.out.println(segment); if (segment.isJson()) { JsonElement outputJson =
-           * segment.getJson(); if (outputJson != null && outputJson.isJsonObject()) { JsonObject
-           * dsRemoteDeserialized = outputJson.getAsJsonObject(); // overwrite the content for
-           * comparison dsContentRemote = dsRemoteDeserialized.get("content").getAsJsonObject(); } }
-           * } } } catch (Exception e) { // TODO Auto-generated catch block
-           * System.out.println("eeeeeeeeeeeeeeeeeeeee"); e.printStackTrace(); }
-           */
           try {
             JsonElement response =
                 this.nsidrClient.performDoipOperationGetRest(dsRemote.id, "getDeserialized");
-            System.out.println("got the content!");
-            System.out.println(response);
             JsonObject dsRemoteDeserialized = response.getAsJsonObject();
             dsContentRemote = dsRemoteDeserialized.get("content").getAsJsonObject();
           } catch (CordraException e) {
-            System.out.println("cordra exception in rest type method");
             e.printStackTrace();
           }
 
@@ -120,7 +92,6 @@ public class DigitalSpecimenProcessor {
       String uid = UUID.randomUUID().toString();
       // we need only a short ID because we have a very narrow scope
       String shortId = uid.substring(0, 10);
-      System.out.println("created uid: " + shortId);
       // To-Do: It should be made sure that the ID does not exist in
       // the same mediaCollection
       // (even though probability is very low)
@@ -139,23 +110,16 @@ public class DigitalSpecimenProcessor {
   public CordraObject createDigitalSpecimen(CordraObject ds) throws CordraException {
     JsonObject content = ds.content.getAsJsonObject();
     JsonArray mediaObjects = this.getMediaObjects(content);
-    System.out.println("before removing: ");
-    System.out.println(content);
-    System.out.println(mediaObjects);
     CordraObject createdDs = this.nsidrClient.create(ds);
     if (mediaObjects.size() > 0) {
       // then there are media objects so a MediaCollection object must be
       // created
 
       JsonObject mediaCollectionContent = content.remove("ods:mediaCollection").getAsJsonObject();
-      System.out.println("after removing: ");
-      System.out.println(content);
-      System.out.println(mediaObjects);
 
       CordraObject newMediaCollection =
           this.createMediaCollection(mediaCollectionContent, createdDs.id);
 
-      System.out.println("MediaCollection upload succes, id. " + newMediaCollection.id);
       // now overwrite the mediaCollection attribute with the ID
       // of the created DO
       JsonObject createdContent = createdDs.content.getAsJsonObject();
@@ -164,7 +128,6 @@ public class DigitalSpecimenProcessor {
       // internally for the OpenRefine frontend overwrite the mediaCollection attribute with the
       // content of the other DO
       createdDs.content.getAsJsonObject().add("ods:mediaCollection", newMediaCollection.content);
-      System.out.println(createdDs.content);
     }
     return createdDs;
   }
@@ -191,9 +154,7 @@ public class DigitalSpecimenProcessor {
             "/ods\\:authoritative/ods\\:curatedObjectID:\"" + curatedObjectID + "\"";
         SearchResults<CordraObject> results = this.nsidrClient.search(queryString);
         if (results.size() == 1) {
-          System.out.println("result search size is 1!!");
           ds = results.iterator().next();
-          System.out.println(ds);
         }
         results.close();
         // To-Do: handle case if more than 1
@@ -261,7 +222,6 @@ public class DigitalSpecimenProcessor {
               contentToUpload.remove("ods:mediaCollection").getAsJsonObject();
           updatedMediaObject = this.createMediaCollection(mediaCollectionContent, ds.id);
         }
-        System.out.println("yyyyyyyy after will:" + updatedMediaObject.id);
         contentToUpload.addProperty("ods:mediaCollection", updatedMediaObject.id);
       }
       // now overwrite the mediaCollection attribute with the ID

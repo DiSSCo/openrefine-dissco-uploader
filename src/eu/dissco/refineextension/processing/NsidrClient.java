@@ -21,7 +21,7 @@ import net.cnri.cordra.api.Options;
 import net.cnri.cordra.api.TokenUsingHttpCordraClient;
 
 public class NsidrClient {
-  public static String NSIDR_URL = "https://nsidr.org";
+  public static String NSIDR_URL = "http://localhost:8080/api";
   private String authToken;
   private CordraClient nsidrRestClient;
 

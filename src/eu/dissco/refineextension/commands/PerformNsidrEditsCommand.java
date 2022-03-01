@@ -50,12 +50,9 @@ public class PerformNsidrEditsCommand extends Command {
             "{ \"code\" : \"error\", \"message\" : \"No authentication token sent\" }");
         return;
       }
-      System.out.println("heyho received token " + authToken);
       Project project = getProject(request);
       Engine engine = getEngine(request, project);
       DisscoSchema savedSchema = (DisscoSchema) project.overlayModels.get(overlayModelKey);
-      System.out.println("found saved DisscoSchema");
-      System.out.println(savedSchema);
       JsonNode columnMapping = savedSchema.getColumnMapping();
       Map<Integer, SyncState> syncStatusForRows = savedSchema.getSyncStatusForRows();
       response.setCharacterEncoding("UTF-8");
@@ -112,7 +109,6 @@ public class PerformNsidrEditsCommand extends Command {
 
     @Override
     public boolean visit(Project project, int rowIndex, Row row) {
-      System.out.println("visit " + String.valueOf(rowIndex));
       DigitalSpecimenProcessor syncProcessor = new DigitalSpecimenProcessor(authToken);
       // To-Do: make this more generic (right now only for a-section
       // objects)
@@ -131,7 +127,6 @@ public class PerformNsidrEditsCommand extends Command {
                     .getAsJsonObject().get("ods:curatedObjectID").getAsString());
 
             CordraObject returnedNewDs = syncProcessor.createDigitalSpecimen(ds);
-            System.out.println("successfully created" + returnedNewDs.id);
             // it is ensured that the doi col index is not null and
             // is integer upon schema saving
             JsonNode doiColIndexNode = this.columnMapping.get("doi");
@@ -141,27 +136,26 @@ public class PerformNsidrEditsCommand extends Command {
             if (this.columnMapping.has("ods:mediaCollection")) {
               JsonNode mediaCollectionEl = this.columnMapping.get("ods:mediaCollection");
               if (mediaCollectionEl.isObject() && mediaCollectionEl.has("ods:mediaObjects")) {
-                JsonNode mediaObjects = mediaCollectionEl.get("ods:mediaObjects");
-                if (mediaObjects.isArray() && mediaObjects.size() > 0) {
-                  Iterator<JsonNode> iter = mediaObjects.elements();
-
+                JsonNode mediaObjectsMapping = mediaCollectionEl.get("ods:mediaObjects");
+                if (mediaObjectsMapping.isArray() && mediaObjectsMapping.size() > 0) {
 
                   JsonObject createdContent = returnedNewDs.content.getAsJsonObject();
                   JsonElement createdMediaCollectionEl = createdContent.get("ods:mediaCollection");
                   JsonArray mediaCollection = createdMediaCollectionEl.getAsJsonObject()
                       .get("ods:mediaObjects").getAsJsonArray();
-
+                  Iterator<JsonElement> iter = mediaCollection.iterator();
+                  
                   int i = 0;
                   while (iter.hasNext()) {
-                    JsonNode mediaObject = iter.next();
-                    int columnIndex = mediaObject.get("ods:mediaId").asInt();
+                    JsonElement mediaObjectEl = iter.next();
+                    JsonNode mediaObjectMapping = mediaObjectsMapping.get(i);
+                    int columnIndex = mediaObjectMapping.get("ods:mediaId").asInt();
 
                     // find the ID of the created mediaObject
-                    JsonObject createdMediaObject = mediaCollection.get(i).getAsJsonObject();
-                    String mediaId = createdMediaObject.get("ods:mediaId").getAsString();
+                    JsonObject mediaObject = mediaObjectEl.getAsJsonObject();
+                    String mediaId = mediaObject.get("ods:mediaId").getAsString();
                     row.setCell(columnIndex, new Cell(mediaId, null));
                     i += 1;
-                    System.out.println("updated row col!");
                   }
                 }
               }
@@ -171,7 +165,6 @@ public class PerformNsidrEditsCommand extends Command {
             JsonNode doi = this.columnMapping.get("doi");
             int colIndex = doi.asInt();
             ds.id = (String) row.getCellValue(colIndex);
-            System.out.println((String) row.getCellValue(colIndex));
             CordraObject returnedNewDs =
                 syncProcessor.updateDigitalSpecimen(ds, syncState.getChanges());
             System.out.println("successfully updated" + returnedNewDs.id);

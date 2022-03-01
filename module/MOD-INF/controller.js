@@ -41,8 +41,9 @@ var ClientSideResourceManager = Packages.com.google.refine.ClientSideResourceMan
 function init() {
 	// Packages.java.lang.System.err.println(module.getMountPoint());
 	var RefineServlet = Packages.com.google.refine.RefineServlet;
-	RefineServlet.registerCommand(module, "preview-digital-specimens", new Packages.eu.dissco.refineextension.commands.PreviewDigitalSpecimenCommand());
+	RefineServlet.registerCommand(module, "save-connection", new Packages.eu.dissco.refineextension.commands.SaveConnectionCommand());
 	RefineServlet.registerCommand(module, "save-schema", new Packages.eu.dissco.refineextension.commands.SaveSchemaCommand());
+	RefineServlet.registerCommand(module, "preview-digital-specimens", new Packages.eu.dissco.refineextension.commands.PreviewDigitalSpecimenCommand());
 	RefineServlet.registerCommand(module, "perform-nsidr-edits", new Packages.eu.dissco.refineextension.commands.PerformNsidrEditsCommand());
 	RefineServlet.registerCommand(module, "prepare-for-synchronization", new Packages.eu.dissco.refineextension.commands.PrepareForSynchronizationCommand());
 	// Script files to inject into /project page
@@ -53,8 +54,9 @@ function init() {
 			"scripts/lib/keycloak.js",
 			"scripts/project-injection.js",
 			"scripts/menu-bar-extension.js",
+			"scripts/setup-connection-dialog.js",
 			"scripts/ods-schema-alignment-dialog.js",
-			"scripts/nsidr-synchronization-dialog.js",
+			"scripts/synchronization-dialog.js",
 		]
 	);
 

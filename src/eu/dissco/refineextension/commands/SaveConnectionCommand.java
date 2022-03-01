@@ -1,7 +1,7 @@
+
 package eu.dissco.refineextension.commands;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.databind.JsonNode;
 
 import com.google.refine.commands.Command;
 import com.google.refine.model.Project;
@@ -14,12 +14,11 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.ServletException;
 
-import com.google.refine.util.ParsingUtilities;
 
 import eu.dissco.refineextension.model.SyncState;
 import eu.dissco.refineextension.schema.DisscoSchema;
 
-public class SaveSchemaCommand extends Command {
+public class SaveConnectionCommand extends Command {
 
   private String overlayModelKey = "disscoSchema";
 
@@ -29,29 +28,25 @@ public class SaveSchemaCommand extends Command {
     // To-Do: make csrf token check
     try {
       Project project = getProject(request);
-      String columnMappingString = request.getParameter("columnMapping");
-      if (columnMappingString == null) {
-        respond(response, "{ \"code\" : \"error\", \"message\" : \"No columnMapping specified\" }");
-        return;
+      String[] requiredKeys = {"cordraServerUrl", "authServerUrl", "authRealm", "authClientId"};
+      for (int i = 0; i < requiredKeys.length; i++) {
+        String key = requiredKeys[i];
+        String value = request.getParameter(key);
+        if (value == null || value.isEmpty()) {
+          respond(response,
+              "{ \"code\" : \"error\", \"message\" : \"Missing required value:" + key + "\" }");
+          return;
+        }
       }
-      JsonNode columnMapping = ParsingUtilities.evaluateJsonStringToObjectNode(columnMappingString);
-      JsonNode doi = columnMapping.get("doi");
-      if (doi == null || doi.isNull()) {
-        respond(response,
-            "{ \"code\" : \"error\", \"message\" : \"A mapping for the doi field is obligatory\" }");
-        return;
-      } else if (!doi.isInt()) {
-        respond(response,
-            "{ \"code\" : \"error\", \"message\" : \"The doi column index must be an integer\" }");
-        return;
-      }
+
       DisscoSchema schema = (DisscoSchema) project.overlayModels.get(overlayModelKey);
       if (schema == null) {
         schema = new DisscoSchema();
       }
-      Map<Integer, SyncState> syncStatusForRows = new HashMap<Integer, SyncState>();
-      schema.setSyncStatusForRows(syncStatusForRows);
-      schema.setColumnMapping(columnMapping);
+      schema.setCordraServerUrl(request.getParameter("cordraServerUrl"));
+      schema.setAuthServerUrl(request.getParameter("authServerUrl"));
+      schema.setAuthRealm(request.getParameter("authRealm"));
+      schema.setAuthClientId(request.getParameter("authClientId"));
       project.overlayModels.put(overlayModelKey, schema);
 
       response.setCharacterEncoding("UTF-8");
@@ -75,4 +70,3 @@ public class SaveSchemaCommand extends Command {
     }
   }
 }
-

@@ -122,10 +122,12 @@ public class DigitalSpecimenUtil {
           }
         }
         if (isEmpty) {
-          deleteIdxs.add(i);
+          deleteIdxs.add(0, i);
         }
         i += 1;
       }
+      System.out.println("will remove the following indices:");
+      System.out.println(deleteIdxs);
       for (int j : deleteIdxs) {
         mediaObjects.remove(j);
       }

@@ -48,10 +48,7 @@ public class PrepareForSynchronizationCommand extends Command {
       }
       Project project = getProject(request);
       Engine engine = getEngine(request, project);
-      DisscoSchema savedSchema = (DisscoSchema) project.overlayModels.get("disscoSchema");
-      System.out.println("the schema: ");
-      System.out.println(savedSchema);
-      System.out.println(savedSchema.getColumnMapping());
+      DisscoSchema savedSchema = (DisscoSchema) project.overlayModels.get(overlayModelKey);
       // To-Do check that schema haas ColumnMapping
       JsonNode columnMapping = savedSchema.getColumnMapping();
       // Map syncStatusForRows = savedSchema.getSyncStatusForRows();
@@ -62,9 +59,8 @@ public class PrepareForSynchronizationCommand extends Command {
       filteredRows.accept(project, new MyRowVisitor(columnMapping, syncStatusForRows, authToken));
 
       // preserve the pre-sync results for the synchronization command
-      DisscoSchema newSchema = new DisscoSchema(columnMapping, syncStatusForRows);
-      project.overlayModels.put(overlayModelKey, newSchema);
-      System.out.println("WOw hey yeah saved new schema, new!");
+      savedSchema.setSyncStatusForRows(syncStatusForRows);
+      project.overlayModels.put(overlayModelKey, savedSchema);
 
       respondJSON(response, new NsidrSyncResult(syncStatusForRows));
     } catch (Exception e) {
@@ -128,7 +124,6 @@ public class PrepareForSynchronizationCommand extends Command {
       ds = processorClient.findRemoteDigitalSpecimenById(doi);
       if (ds == null) {
         JsonNode authoritativeNode = this.columnMapping.get("ods:authoritative");
-        System.out.println(authoritativeNode);
         if (!authoritativeNode.isNull()) {
           JsonNode curatedObjectIdNode = authoritativeNode.get("ods:curatedObjectID");
           if (!curatedObjectIdNode.isNull() && curatedObjectIdNode.isInt()) {

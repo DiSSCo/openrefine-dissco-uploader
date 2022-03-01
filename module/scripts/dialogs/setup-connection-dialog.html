@@ -1,0 +1,40 @@
+<div class="dialog-frame wikibase-dialog" style="width: 700px">
+  <div class="dialog-header" bind="dialogHeader">Setup connection</div>
+  <div class="dialog-body" bind="dialogBody">
+    <p>Some explanations ...</p>
+        <div id="setup-connection-tabs" class="refine-tabs">
+            <ul>
+                <li><a href="#setup-connection-tabs-digital-specimen">Digital specimen server</a></li>
+                <li><a href="#setup-connection-tabs-auth">Auth server</a></li>
+            </ul>
+            <div id="setup-connection-tabs-digital-specimen">
+                <table class="cordra-uploader-connection-table">
+					<tbody>
+						<tr><td>Digital specimen server</td><td><input bind="inputDSServer"></input></td></tr>
+					</tbody>
+                </table>
+            </div>
+            <div id="setup-connection-tabs-auth" style="display: none;">
+               <table class="cordra-uploader-connection-table">
+					<tbody>
+						<tr><td>Authentication server</td><td><input bind="inputAuthServer"></input></td></tr>
+						<tr><td>Realm</td><td><input bind="inputAuthRealm"></input></td></tr>
+						<tr><td>Client id</td><td><input bind="inputAuthClientId"></input></td></tr>
+					</tbody>
+                </table>
+            </div>
+        </div>
+  </div>
+  <div class="dialog-footer" bind="dialogFooter">
+    <div class="nsidr-buttons">
+		<span>
+	    	<button class="button" bind="closeButton" id="close-button">Close</button>
+	    	<button class="button" bind="resetButton">Reset defaults</button>
+		</span>
+		<span>
+			<button class="button" bind="saveButton">Save</button>
+		</span>
+    </div>
+    <p bind="syncInfoText"></p>
+  </div>
+</div>

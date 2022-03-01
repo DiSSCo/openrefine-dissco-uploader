@@ -146,7 +146,7 @@ OdsSchemaAlignmentDialog.launch = function() {
 				limit: 5
 			},
 			{
-				rowsChanged: true
+				modelsChanged: true
 			},
 			{
 				onDone: function(data) {
@@ -155,7 +155,6 @@ OdsSchemaAlignmentDialog.launch = function() {
 					} else {
 						alert("Error - schema could not be saved. Message: " + data.message);
 					}
-					theProject.overlayModels.disscoSchema = { columnMapping: columnMapping };
 				},
 				onError: function(data) {
 					alert("Error - schema could not be saved. Message: " + data.message);
