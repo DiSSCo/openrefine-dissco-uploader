@@ -11,7 +11,6 @@
                 <div class="ods-mapping-dialog-canvas">
                   <table>
                   </table>
-				  <button class="button">Add term</button>
                 </div>
             </div>
             <div id="ods-mapping-tabs-preview" style="display: none;">
@@ -24,7 +23,11 @@
     <div class="nsidr-buttons">
 		<span>
 	      <button class="button" bind="closeButton" id="close-button">Close</button>
-	      <button class="button" bind="resetButton">Reset</button>
+	      <button class="button" bind="resetButton">Reset to ODS</button>
+	      <button class="button" bind="changeTargetDOButton">Change target digital object</button>
+		  <span bind="changeTargetArea" hidden>
+			<input bind="changeTargetDOInput"></input><button bind="changeTargetDOEnter">></button>
+		</span>  
 		</span>
       <button class="button" bind="saveSchemaButton">Save schema</button>
     </div>

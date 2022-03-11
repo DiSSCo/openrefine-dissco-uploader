@@ -20,7 +20,7 @@ import javax.servlet.ServletException;
 import com.google.refine.util.ParsingUtilities;
 
 import com.google.gson.JsonObject;
-import eu.dissco.refineextension.util.DigitalSpecimenUtil;
+import eu.dissco.refineextension.util.DigitalObjectUtil;
 
 public class PreviewDigitalSpecimenCommand extends Command {
 
@@ -53,6 +53,7 @@ public class PreviewDigitalSpecimenCommand extends Command {
       response.setHeader("Content-Type", "application/json");
       respond(response, resultArray.toString());
     } catch (Exception e) {
+      e.printStackTrace();
       respondException(response, e);
     }
   }
@@ -81,7 +82,7 @@ public class PreviewDigitalSpecimenCommand extends Command {
         return true;
       }
       this.count += 1;
-      JsonObject dsObject = DigitalSpecimenUtil.rowToJsonObject(row, this.columnMapping);
+      JsonObject dsObject = DigitalObjectUtil.rowToJsonObject(row, this.columnMapping, true);
       this.storedObjects.add(dsObject);
       return false;
     }

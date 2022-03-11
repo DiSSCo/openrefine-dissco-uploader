@@ -29,7 +29,7 @@ import net.cnri.cordra.api.CordraException;
 import eu.dissco.refineextension.model.SyncState;
 import eu.dissco.refineextension.processing.DigitalSpecimenProcessor;
 import eu.dissco.refineextension.schema.DisscoSchema;
-import eu.dissco.refineextension.util.DigitalSpecimenUtil;
+import eu.dissco.refineextension.util.DigitalObjectUtil;
 
 public class PrepareForSynchronizationCommand extends Command {
 
@@ -101,7 +101,7 @@ public class PrepareForSynchronizationCommand extends Command {
         String authToken) {
       this.columnMapping = columnMapping;
       this.syncStatusForRows = syncStatusForRows;
-      this.processorClient = new DigitalSpecimenProcessor(authToken);
+      this.processorClient = new DigitalSpecimenProcessor(authToken, this.columnMapping);
     }
 
     @Override
@@ -113,36 +113,20 @@ public class PrepareForSynchronizationCommand extends Command {
     public boolean visit(Project project, int rowIndex, Row row) {
       System.out.println("visiting " + String.valueOf(rowIndex));
       SyncState rowSyncState = new SyncState();
-      CordraObject ds = null;
-      String curatedObjectID = "";
-      String doi = "";
-      JsonNode doiColIndexNode = this.columnMapping.get("doi");
+      JsonObject digitalObjectContent = null;
+      String id = "";
+      JsonNode idColIndexNode = this.columnMapping.get("id").get("mapping");
       // it is ensured that the doi col index is not null and is integer
-      // upon schema saving
-      int doiColIndex = doiColIndexNode.asInt();
-      doi = (String) row.getCellValue(doiColIndex);
-      ds = processorClient.findRemoteDigitalSpecimenById(doi);
-      if (ds == null) {
-        JsonNode authoritativeNode = this.columnMapping.get("ods:authoritative");
-        if (!authoritativeNode.isNull()) {
-          JsonNode curatedObjectIdNode = authoritativeNode.get("ods:curatedObjectID");
-          if (!curatedObjectIdNode.isNull() && curatedObjectIdNode.isInt()) {
-            int curatedObjectIdIndex = curatedObjectIdNode.asInt();
-            curatedObjectID = (String) row.getCellValue(curatedObjectIdIndex);
-            ds = processorClient.findRemoteDigitalSpecimenByCuratedObjectID(curatedObjectID);
-          }
-        }
-      }
-      if (ds != null) {
-        if (doi.length() == 0) {
-          // when we found an object set the doi in the data
-          row.setCell(doiColIndex, new Cell(ds.id, null));
-        }
-        JsonObject dsContentToUpload =
-            DigitalSpecimenUtil.rowToJsonObject(row, this.columnMapping, "", true);
+      // upon schema saving ???
+      int idColIndex = idColIndexNode.asInt();
+      id = (String) row.getCellValue(idColIndex);
+      digitalObjectContent = processorClient.getDeserializedDigitalObjectContent(id);
+      if (digitalObjectContent != null) {
+        JsonObject doContentToUpload =
+            DigitalObjectUtil.rowToJsonObject(row, this.columnMapping, false);
         JsonNode differencesPatch = null;
         try {
-          differencesPatch = processorClient.getDigitalSpecimenDataDiff(ds, dsContentToUpload);
+          differencesPatch = processorClient.getDigitalObjectDataDiff(digitalObjectContent, doContentToUpload);
         } catch (IOException | CordraException e) {
           System.out.println("json processing exception!");
           e.printStackTrace();
@@ -155,8 +139,6 @@ public class PrepareForSynchronizationCommand extends Command {
         } else {
           rowSyncState = new SyncState("synchronized");
         }
-      } else if (curatedObjectID.length() == 0 && doi.length() == 0) {
-        rowSyncState = new SyncState("error", "missing doi or curatedObjectID");
       } else {
         rowSyncState = new SyncState("new");
       }

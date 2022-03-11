@@ -35,12 +35,19 @@ public class SaveSchemaCommand extends Command {
         return;
       }
       JsonNode columnMapping = ParsingUtilities.evaluateJsonStringToObjectNode(columnMappingString);
-      JsonNode doi = columnMapping.get("doi");
-      if (doi == null || doi.isNull()) {
+      JsonNode idNode = columnMapping.get("id");
+      if (idNode == null || idNode.isNull()) {
         respond(response,
-            "{ \"code\" : \"error\", \"message\" : \"A mapping for the doi field is obligatory\" }");
+            "{ \"code\" : \"error\", \"message\" : \"A mapping for the id field is obligatory\" }");
         return;
-      } else if (!doi.isInt()) {
+      }
+      JsonNode idMapping = idNode.get("mapping");
+      if (idMapping == null || idMapping.isNull()) {
+        respond(response,
+            "{ \"code\" : \"error\", \"message\" : \"A mapping for the id field is obligatory\" }");
+        return;
+      }
+      if (!idMapping.isInt()) {
         respond(response,
             "{ \"code\" : \"error\", \"message\" : \"The doi column index must be an integer\" }");
         return;

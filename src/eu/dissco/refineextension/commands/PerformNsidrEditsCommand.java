@@ -14,7 +14,9 @@ import com.google.refine.browsing.RowVisitor;
 import com.google.refine.browsing.FilteredRows;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -30,7 +32,7 @@ import net.cnri.cordra.api.CordraException;
 import eu.dissco.refineextension.model.SyncState;
 import eu.dissco.refineextension.processing.DigitalSpecimenProcessor;
 import eu.dissco.refineextension.schema.DisscoSchema;
-import eu.dissco.refineextension.util.DigitalSpecimenUtil;
+import eu.dissco.refineextension.util.DigitalObjectUtil;
 
 
 
@@ -109,64 +111,29 @@ public class PerformNsidrEditsCommand extends Command {
 
     @Override
     public boolean visit(Project project, int rowIndex, Row row) {
-      DigitalSpecimenProcessor syncProcessor = new DigitalSpecimenProcessor(authToken);
+      DigitalSpecimenProcessor syncProcessor = new DigitalSpecimenProcessor(authToken, this.columnMapping);
       // To-Do: make this more generic (right now only for a-section
       // objects)
       SyncState syncState = this.syncStatusForRows.get(rowIndex);
       String syncStatus = syncState.getSyncStatus();
       if (syncStatus == "new" || syncStatus == "change") {
-        JsonObject content = DigitalSpecimenUtil.rowToJsonObject(row, this.columnMapping, "", true);
-        CordraObject ds = new CordraObject();
-        ds.setContent(content);
-        ds.type = "ODStypeV0.2";
+        JsonObject contentToUpload = DigitalObjectUtil.rowToJsonObject(row, this.columnMapping, true);
 
         try {
+          List<String> jsonPathAsList = new ArrayList<String>();
           if (syncStatus == "new") {
             System.out
-                .println("found new: " + String.valueOf(rowIndex) + content.get("ods:authoritative")
-                    .getAsJsonObject().get("ods:curatedObjectID").getAsString());
+                .println("found new: " + String.valueOf(rowIndex));
 
-            CordraObject returnedNewDs = syncProcessor.createDigitalSpecimen(ds);
+           
+            CordraObject returnedNewDs = syncProcessor.createDigitalObjectsRecursive((JsonElement) contentToUpload, row, jsonPathAsList);
             // it is ensured that the doi col index is not null and
-            // is integer upon schema saving
-            JsonNode doiColIndexNode = this.columnMapping.get("doi");
-            int doiColumnIndex = doiColIndexNode.asInt();
-            row.setCell(doiColumnIndex, new Cell(returnedNewDs.id, null));
-            // if new media objects were created, set the ID for every one
-            if (this.columnMapping.has("ods:mediaCollection")) {
-              JsonNode mediaCollectionEl = this.columnMapping.get("ods:mediaCollection");
-              if (mediaCollectionEl.isObject() && mediaCollectionEl.has("ods:mediaObjects")) {
-                JsonNode mediaObjectsMapping = mediaCollectionEl.get("ods:mediaObjects");
-                if (mediaObjectsMapping.isArray() && mediaObjectsMapping.size() > 0) {
-
-                  JsonObject createdContent = returnedNewDs.content.getAsJsonObject();
-                  JsonElement createdMediaCollectionEl = createdContent.get("ods:mediaCollection");
-                  JsonArray mediaCollection = createdMediaCollectionEl.getAsJsonObject()
-                      .get("ods:mediaObjects").getAsJsonArray();
-                  Iterator<JsonElement> iter = mediaCollection.iterator();
-                  
-                  int i = 0;
-                  while (iter.hasNext()) {
-                    JsonElement mediaObjectEl = iter.next();
-                    JsonNode mediaObjectMapping = mediaObjectsMapping.get(i);
-                    int columnIndex = mediaObjectMapping.get("ods:mediaId").asInt();
-
-                    // find the ID of the created mediaObject
-                    JsonObject mediaObject = mediaObjectEl.getAsJsonObject();
-                    String mediaId = mediaObject.get("ods:mediaId").getAsString();
-                    row.setCell(columnIndex, new Cell(mediaId, null));
-                    i += 1;
-                  }
-                }
-              }
-            }
+            // is integer upon schema saving ???
           } else {
             // To-Do: Use json patch here
-            JsonNode doi = this.columnMapping.get("doi");
-            int colIndex = doi.asInt();
-            ds.id = (String) row.getCellValue(colIndex);
+            
             CordraObject returnedNewDs =
-                syncProcessor.updateDigitalSpecimen(ds, syncState.getChanges());
+                syncProcessor.updateDigitalObjectsRecursive((JsonElement) contentToUpload, row, jsonPathAsList);
             System.out.println("successfully updated" + returnedNewDs.id);
           }
           this.syncStatusForRows.put(rowIndex, new SyncState("synchronized"));
