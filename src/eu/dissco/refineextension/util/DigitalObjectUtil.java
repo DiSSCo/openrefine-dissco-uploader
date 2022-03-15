@@ -5,16 +5,12 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.UUID;
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.JsonNodeType;
 import com.google.refine.model.Row;
 import com.google.gson.JsonArray;
-import com.google.gson.JsonElement;
 import com.google.gson.JsonNull;
 import com.google.gson.JsonObject;
-import com.google.gson.JsonPrimitive;
 
 public class DigitalObjectUtil {
 
@@ -80,7 +76,8 @@ public class DigitalObjectUtil {
 
         JsonNode generateScopedIdNode = columnMappingNode.get("generateScopedId");
         if ((generateScopedIdNode != null && generateScopedIdNode.asBoolean(false))
-            && (cellValue instanceof String || cellValue == null)) {
+            && (cellValue == null
+                || (cellValue instanceof String && ((String) cellValue).isEmpty()))) {
           // then we will create a locally scoped ID
           // this creates a 36 digit unique ID
           String uid = UUID.randomUUID().toString();
@@ -100,6 +97,53 @@ public class DigitalObjectUtil {
             jobject.add(key, JsonNull.INSTANCE);
           }
         }
+      }
+    }
+  }
+
+  public static void setColsToModify(JsonNode columnMappingNode, List<String> jsonPathAsList,
+      Map<Integer, List<String>> resultMap) {
+    JsonNode values = columnMappingNode.get("values");
+    Iterator<Map.Entry<String, JsonNode>> subSectionIter = values.fields();
+    while (subSectionIter.hasNext()) {
+      Map.Entry<String, JsonNode> kv = subSectionIter.next();
+      String key = kv.getKey();
+      List<String> jsonPathAsListCopy = new ArrayList<String>();
+      for (String item : jsonPathAsList)
+        jsonPathAsListCopy.add(item);
+      jsonPathAsListCopy.add(key);
+      JsonNode columnMappingNodeInner = kv.getValue();
+      String valueMappingType = columnMappingNodeInner.get("mappingType").asText();
+      switch (valueMappingType) {
+        case "attribute":
+          // then it is an item to map, i.e. should be the index of a column or null
+          JsonNode colIndexNode = columnMappingNodeInner.get("mapping");
+          if (colIndexNode != null && !colIndexNode.isNull() && colIndexNode.isInt()) {
+            JsonNode generateScopedIdNode = columnMappingNodeInner.get("generateScopedId");
+            if (generateScopedIdNode != null && generateScopedIdNode.asBoolean(false)) {
+              int colIndex = colIndexNode.asInt();
+              resultMap.put(colIndex, jsonPathAsListCopy);
+            }
+          }
+          break;
+
+        case "compositeAttribute":
+        case "digitalObject":
+          setColsToModify(columnMappingNodeInner, jsonPathAsListCopy, resultMap);
+          break;
+        case "arrayAttribute":
+          JsonNode arrayValues = columnMappingNodeInner.get("values");
+          Iterator<JsonNode> items = arrayValues.elements();
+          int i = 0;
+          while (items.hasNext()) {
+            List<String> jsonPathAsListCopy2 = new ArrayList<String>();
+            for (String item : jsonPathAsListCopy)
+              jsonPathAsListCopy2.add(item);
+            jsonPathAsListCopy2.add(String.valueOf(i));
+            setColsToModify(items.next(), jsonPathAsListCopy2, resultMap);
+            i += 1;
+          }
+          break;
       }
     }
   }

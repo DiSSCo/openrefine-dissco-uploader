@@ -7,7 +7,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
-import java.util.UUID;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -20,24 +19,80 @@ import com.google.refine.model.Cell;
 import com.google.refine.model.Row;
 import net.cnri.cordra.api.CordraException;
 import net.cnri.cordra.api.CordraObject;
-import net.cnri.cordra.api.SearchResults;
 
-public class DigitalSpecimenProcessor {
+public class DigitalObjectProcessor {
 
   private NsidrClient nsidrClient;
   private JsonNode columnMapping;
+  private Map<Integer, List<String>> colIndicesToModify;
 
 
-  public DigitalSpecimenProcessor(String authToken, JsonNode columnMapping) {
+  public DigitalObjectProcessor(String authToken, JsonNode columnMapping,
+      Map<Integer, List<String>> colIndicesToModify) {
     this.nsidrClient = new NsidrClient(authToken);
     this.columnMapping = columnMapping;
-  }
-  
-  private void digitalObjectPostProcessing(CordraObject co, List<String> jsonPathAsList) {
-    
+    this.colIndicesToModify = colIndicesToModify;
   }
 
-  private int getMappingByJsonPathAsList(List<String> jsonPathAsList) {
+  private void digitalObjectPostProcessing(CordraObject co, Row row,
+      List<String> objectJsonPathAsList) {
+    Iterator<Map.Entry<Integer, List<String>>> mapIter = this.colIndicesToModify.entrySet().iterator();
+    while (mapIter.hasNext()) {
+      JsonElement contentJsonElement = co.content;
+      List<String> objectJsonPathAsListClone = this.shallowCloneList(objectJsonPathAsList);
+      Map.Entry<Integer, List<String>> keyValue = mapIter.next();
+      List<String> toModifyJsonPathAsList = keyValue.getValue();
+      Iterator<String> pathIter = toModifyJsonPathAsList.iterator();
+      boolean pathNotFound = false;
+      while (pathIter.hasNext()) {
+        String subPath = pathIter.next();
+        if (objectJsonPathAsListClone.size() > 0) {
+          if (objectJsonPathAsListClone.get(0).equals(subPath)) {
+            objectJsonPathAsListClone.remove(0);
+          } else {
+            pathNotFound = true;
+            break;
+          }
+        } else {
+          if (contentJsonElement.isJsonArray()) {
+            try {
+              int idx = Integer.parseInt(subPath);
+              contentJsonElement = contentJsonElement.getAsJsonArray().get(idx);
+            } catch (NumberFormatException e) {
+              pathNotFound = true;
+              break;
+            }
+          } else {
+            try {
+              JsonObject ob = contentJsonElement.getAsJsonObject();
+              if (ob.has(subPath)) {
+                contentJsonElement = ob.get(subPath);
+              } else {
+                pathNotFound = true;
+                break;
+              }
+            } catch (IllegalStateException e) {
+              pathNotFound = true;
+              break;
+            }
+          }
+        }
+      }
+      if (!pathNotFound) {
+        if (contentJsonElement.isJsonPrimitive()) {
+          JsonPrimitive jsonValue = contentJsonElement.getAsJsonPrimitive();
+          int colIndex = keyValue.getKey();
+          if (jsonValue.isString()) {
+            row.setCell(colIndex, new Cell(jsonValue.getAsString(), null));
+          } else if (jsonValue.isNumber()) {
+            row.setCell(colIndex, new Cell(jsonValue.getAsDouble(), null));
+          }
+        }
+      }
+    }
+  }
+
+  private int getIdMappingByJsonPathAsList(List<String> jsonPathAsList) {
     JsonNode columnMappingNode = this.columnMapping;
     Iterator<String> iter = jsonPathAsList.iterator();
     while (iter.hasNext()) {
@@ -127,8 +182,9 @@ public class DigitalSpecimenProcessor {
         }
         objectToCreate.content = content;
         CordraObject createdDO = this.nsidrClient.create(objectToCreate);
-        int idColumnIndex = getMappingByJsonPathAsList(jsonPathAsList);
+        int idColumnIndex = getIdMappingByJsonPathAsList(jsonPathAsList);
         row.setCell(idColumnIndex, new Cell(createdDO.id, null));
+        digitalObjectPostProcessing(createdDO, row, jsonPathAsList);
         return createdDO;
       }
     } else {
@@ -156,7 +212,8 @@ public class DigitalSpecimenProcessor {
     JsonObject content = null;
     if (id.length() > 0) {
       try {
-        JsonElement response = this.nsidrClient.performDoipOperationGetRest(id, "getDeserializedContent");
+        JsonElement response =
+            this.nsidrClient.performDoipOperationGetRest(id, "getDeserializedContent");
         content = response.getAsJsonObject();
       } catch (CordraException e1) {
         if (e1.getResponseCode() == 401) {
@@ -165,8 +222,7 @@ public class DigitalSpecimenProcessor {
             CordraObject co = this.nsidrClient.get(id);
             content = co.content.getAsJsonObject();
           } catch (CordraException e2) {
-            System.out.println(
-                "an CordraException was thrown in retrieve" + e2.getMessage());
+            System.out.println("an CordraException was thrown in retrieve" + e2.getMessage());
             e2.printStackTrace();
           }
         }
@@ -174,7 +230,7 @@ public class DigitalSpecimenProcessor {
     }
     return content;
   }
-  
+
   public CordraObject updateDigitalObjectsRecursive(JsonElement rowToObject, Row row,
       List<String> jsonPathAsList) throws CordraException {
     // To-Do: refactoring required to reduce code duplication
@@ -226,6 +282,7 @@ public class DigitalSpecimenProcessor {
         }
         objectToUpdate.content = content;
         CordraObject updatedDO = this.nsidrClient.update(objectToUpdate);
+        digitalObjectPostProcessing(updatedDO, row, jsonPathAsList);
         return updatedDO;
       }
     } else {
@@ -248,5 +305,12 @@ public class DigitalSpecimenProcessor {
       }
     }
     return null;
+  }
+  
+  private List<String> shallowCloneList(List<String> l){
+    List<String> clone = new ArrayList<String>();
+    for (String item : l)
+      clone.add(item);
+    return clone;
   }
 }

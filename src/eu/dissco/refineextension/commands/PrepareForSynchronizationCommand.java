@@ -5,7 +5,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 
 import com.google.refine.browsing.Engine;
 import com.google.refine.commands.Command;
-import com.google.refine.model.Cell;
 import com.google.refine.model.Project;
 import com.google.refine.model.Row;
 
@@ -16,18 +15,16 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
-// import java.util.StringBuilder;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.ServletException;
 
 import com.google.gson.JsonObject;
 
-import net.cnri.cordra.api.CordraObject;
 import net.cnri.cordra.api.CordraException;
 
 import eu.dissco.refineextension.model.SyncState;
-import eu.dissco.refineextension.processing.DigitalSpecimenProcessor;
+import eu.dissco.refineextension.processing.DigitalObjectProcessor;
 import eu.dissco.refineextension.schema.DisscoSchema;
 import eu.dissco.refineextension.util.DigitalObjectUtil;
 
@@ -95,13 +92,13 @@ public class PrepareForSynchronizationCommand extends Command {
 
     private JsonNode columnMapping;
     private Map<Integer, SyncState> syncStatusForRows;
-    DigitalSpecimenProcessor processorClient;
+    DigitalObjectProcessor processorClient;
 
     public MyRowVisitor(JsonNode columnMapping, Map<Integer, SyncState> syncStatusForRows,
         String authToken) {
       this.columnMapping = columnMapping;
       this.syncStatusForRows = syncStatusForRows;
-      this.processorClient = new DigitalSpecimenProcessor(authToken, this.columnMapping);
+      this.processorClient = new DigitalObjectProcessor(authToken, this.columnMapping, null);
     }
 
     @Override

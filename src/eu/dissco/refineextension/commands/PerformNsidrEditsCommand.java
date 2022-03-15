@@ -8,21 +8,22 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.google.refine.browsing.Engine;
 import com.google.refine.commands.Command;
 import com.google.refine.model.Row;
-import com.google.refine.model.Cell;
 
 import com.google.refine.browsing.RowVisitor;
 import com.google.refine.browsing.FilteredRows;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Iterator;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.ServletException;
 
-import com.google.gson.JsonArray;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
@@ -30,7 +31,7 @@ import net.cnri.cordra.api.CordraObject;
 import net.cnri.cordra.api.CordraException;
 
 import eu.dissco.refineextension.model.SyncState;
-import eu.dissco.refineextension.processing.DigitalSpecimenProcessor;
+import eu.dissco.refineextension.processing.DigitalObjectProcessor;
 import eu.dissco.refineextension.schema.DisscoSchema;
 import eu.dissco.refineextension.util.DigitalObjectUtil;
 
@@ -40,6 +41,7 @@ import eu.dissco.refineextension.util.DigitalObjectUtil;
 public class PerformNsidrEditsCommand extends Command {
 
   private String overlayModelKey = "disscoSchema";
+  final static Logger logger = LoggerFactory.getLogger("PerformNsidrEditsCommand");
 
   @Override
   public void doPost(HttpServletRequest request, HttpServletResponse response)
@@ -96,12 +98,18 @@ public class PerformNsidrEditsCommand extends Command {
     private JsonNode columnMapping;
     Map<Integer, SyncState> syncStatusForRows;
     private String authToken;
+    Map<Integer, List<String>> colsToModifyAfter;
 
     public MyRowVisitor(JsonNode columnMapping, Map<Integer, SyncState> syncStatusForRows,
         String authToken) {
       this.columnMapping = columnMapping;
       this.syncStatusForRows = syncStatusForRows;
       this.authToken = authToken;
+      
+      List<String> jsonPathAsList = new ArrayList<String>();
+      Map<Integer, List<String>> colsToModifyAfter = new HashMap<Integer, List<String>>();
+      DigitalObjectUtil.setColsToModify(columnMapping, jsonPathAsList, colsToModifyAfter);
+      this.colsToModifyAfter = colsToModifyAfter;
     }
 
     @Override
@@ -111,14 +119,13 @@ public class PerformNsidrEditsCommand extends Command {
 
     @Override
     public boolean visit(Project project, int rowIndex, Row row) {
-      DigitalSpecimenProcessor syncProcessor = new DigitalSpecimenProcessor(authToken, this.columnMapping);
+      DigitalObjectProcessor syncProcessor = new DigitalObjectProcessor(authToken, this.columnMapping, this.colsToModifyAfter);
       // To-Do: make this more generic (right now only for a-section
       // objects)
       SyncState syncState = this.syncStatusForRows.get(rowIndex);
       String syncStatus = syncState.getSyncStatus();
       if (syncStatus == "new" || syncStatus == "change") {
         JsonObject contentToUpload = DigitalObjectUtil.rowToJsonObject(row, this.columnMapping, true);
-
         try {
           List<String> jsonPathAsList = new ArrayList<String>();
           if (syncStatus == "new") {
@@ -126,15 +133,12 @@ public class PerformNsidrEditsCommand extends Command {
                 .println("found new: " + String.valueOf(rowIndex));
 
            
-            CordraObject returnedNewDs = syncProcessor.createDigitalObjectsRecursive((JsonElement) contentToUpload, row, jsonPathAsList);
-            // it is ensured that the doi col index is not null and
-            // is integer upon schema saving ???
+            CordraObject newDO = syncProcessor.createDigitalObjectsRecursive((JsonElement) contentToUpload, row, jsonPathAsList);
+            PerformNsidrEditsCommand.logger.info("Created new DO: " + newDO.id);
           } else {
             // To-Do: Use json patch here
-            
-            CordraObject returnedNewDs =
-                syncProcessor.updateDigitalObjectsRecursive((JsonElement) contentToUpload, row, jsonPathAsList);
-            System.out.println("successfully updated" + returnedNewDs.id);
+            CordraObject updatedDO = syncProcessor.updateDigitalObjectsRecursive((JsonElement) contentToUpload, row, jsonPathAsList);
+            PerformNsidrEditsCommand.logger.info("Updated new DO: " + updatedDO.id);
           }
           this.syncStatusForRows.put(rowIndex, new SyncState("synchronized"));
         } catch (CordraException e) {
@@ -145,7 +149,6 @@ public class PerformNsidrEditsCommand extends Command {
           e.printStackTrace();
         }
       }
-      // syncProcessor.closeConnection();
       return false;
     }
 
