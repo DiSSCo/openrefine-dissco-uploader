@@ -7,20 +7,14 @@ import com.google.refine.commands.Command;
 import com.google.refine.model.Project;
 
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.ServletException;
 
-
-import eu.dissco.refineextension.model.SyncState;
-import eu.dissco.refineextension.schema.DisscoSchema;
+import eu.dissco.refineextension.schema.CordraUploadSchema;
 
 public class SaveConnectionCommand extends Command {
-
-  private String overlayModelKey = "disscoSchema";
 
   @Override
   public void doPost(HttpServletRequest request, HttpServletResponse response)
@@ -39,15 +33,16 @@ public class SaveConnectionCommand extends Command {
         }
       }
 
-      DisscoSchema schema = (DisscoSchema) project.overlayModels.get(overlayModelKey);
+      CordraUploadSchema schema =
+          (CordraUploadSchema) project.overlayModels.get(CordraUploadSchema.overlayModelKey);
       if (schema == null) {
-        schema = new DisscoSchema();
+        schema = new CordraUploadSchema();
       }
       schema.setCordraServerUrl(request.getParameter("cordraServerUrl"));
       schema.setAuthServerUrl(request.getParameter("authServerUrl"));
       schema.setAuthRealm(request.getParameter("authRealm"));
       schema.setAuthClientId(request.getParameter("authClientId"));
-      project.overlayModels.put(overlayModelKey, schema);
+      project.overlayModels.put(CordraUploadSchema.overlayModelKey, schema);
 
       response.setCharacterEncoding("UTF-8");
       response.setHeader("Content-Type", "application/json");

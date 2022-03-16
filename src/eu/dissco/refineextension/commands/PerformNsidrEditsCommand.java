@@ -2,7 +2,6 @@ package eu.dissco.refineextension.commands;
 
 import com.google.refine.model.Project;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.JsonNode;
 
 import com.google.refine.browsing.Engine;
@@ -29,10 +28,10 @@ import com.google.gson.JsonObject;
 
 import net.cnri.cordra.api.CordraObject;
 import net.cnri.cordra.api.CordraException;
-
+import eu.dissco.refineextension.model.SyncResult;
 import eu.dissco.refineextension.model.SyncState;
 import eu.dissco.refineextension.processing.DigitalObjectProcessor;
-import eu.dissco.refineextension.schema.DisscoSchema;
+import eu.dissco.refineextension.schema.CordraUploadSchema;
 import eu.dissco.refineextension.util.DigitalObjectUtil;
 
 
@@ -40,7 +39,6 @@ import eu.dissco.refineextension.util.DigitalObjectUtil;
 // public class PerformNsidrEditsCommand extends EngineDependentCommand {
 public class PerformNsidrEditsCommand extends Command {
 
-  private String overlayModelKey = "disscoSchema";
   final static Logger logger = LoggerFactory.getLogger("PerformNsidrEditsCommand");
 
   @Override
@@ -56,7 +54,8 @@ public class PerformNsidrEditsCommand extends Command {
       }
       Project project = getProject(request);
       Engine engine = getEngine(request, project);
-      DisscoSchema savedSchema = (DisscoSchema) project.overlayModels.get(overlayModelKey);
+      CordraUploadSchema savedSchema =
+          (CordraUploadSchema) project.overlayModels.get(CordraUploadSchema.overlayModelKey);
       JsonNode columnMapping = savedSchema.getColumnMapping();
       Map<Integer, SyncState> syncStatusForRows = savedSchema.getSyncStatusForRows();
       response.setCharacterEncoding("UTF-8");
@@ -64,32 +63,10 @@ public class PerformNsidrEditsCommand extends Command {
       FilteredRows filteredRows = engine.getAllFilteredRows();
       filteredRows.accept(project, new MyRowVisitor(columnMapping, syncStatusForRows, authToken));
       project.update(); // To-Do: is this necessary?
-      respondJSON(response, new NsidrSyncResult(syncStatusForRows));
+      respondJSON(response, new SyncResult(syncStatusForRows));
     } catch (Exception e) {
       e.printStackTrace();
       respondException(response, e);
-    }
-  }
-
-  protected static class NsidrSyncResult {
-
-    @JsonProperty("code")
-    protected String code;
-    @JsonProperty("message")
-    protected String message;
-    @JsonProperty("results")
-    Map<Integer, SyncState> results;
-
-    public NsidrSyncResult(String code, String message) {
-      this.code = code;
-      this.message = message;
-      this.results = null;
-    }
-
-    public NsidrSyncResult(Map<Integer, SyncState> results) {
-      this.code = "ok";
-      this.message = null;
-      this.results = results;
     }
   }
 
@@ -105,7 +82,7 @@ public class PerformNsidrEditsCommand extends Command {
       this.columnMapping = columnMapping;
       this.syncStatusForRows = syncStatusForRows;
       this.authToken = authToken;
-      
+
       List<String> jsonPathAsList = new ArrayList<String>();
       Map<Integer, List<String>> colsToModifyAfter = new HashMap<Integer, List<String>>();
       DigitalObjectUtil.setColsToModify(columnMapping, jsonPathAsList, colsToModifyAfter);
@@ -119,21 +96,25 @@ public class PerformNsidrEditsCommand extends Command {
 
     @Override
     public boolean visit(Project project, int rowIndex, Row row) {
-      DigitalObjectProcessor syncProcessor = new DigitalObjectProcessor(authToken, this.columnMapping, this.colsToModifyAfter);
+      DigitalObjectProcessor syncProcessor =
+          new DigitalObjectProcessor(authToken, this.columnMapping, this.colsToModifyAfter);
       // To-Do: make this more generic (right now only for a-section
       // objects)
       SyncState syncState = this.syncStatusForRows.get(rowIndex);
       String syncStatus = syncState.getSyncStatus();
       if (syncStatus == "new" || syncStatus == "change") {
-        JsonObject contentToUpload = DigitalObjectUtil.rowToJsonObject(row, this.columnMapping, true);
+        JsonObject contentToUpload =
+            DigitalObjectUtil.rowToJsonObject(row, this.columnMapping, true);
         try {
           List<String> jsonPathAsList = new ArrayList<String>();
           if (syncStatus == "new") {
-            CordraObject newDO = syncProcessor.createDigitalObjectsRecursive((JsonElement) contentToUpload, row, jsonPathAsList);
+            CordraObject newDO = syncProcessor
+                .createDigitalObjectsRecursive((JsonElement) contentToUpload, row, jsonPathAsList);
             PerformNsidrEditsCommand.logger.info("Created new DO: " + newDO.id);
           } else {
             // To-Do: Use json patch here
-            CordraObject updatedDO = syncProcessor.updateDigitalObjectsRecursive((JsonElement) contentToUpload, row, jsonPathAsList);
+            CordraObject updatedDO = syncProcessor
+                .updateDigitalObjectsRecursive((JsonElement) contentToUpload, row, jsonPathAsList);
             PerformNsidrEditsCommand.logger.info("Updated new DO: " + updatedDO.id);
           }
           this.syncStatusForRows.put(rowIndex, new SyncState("synchronized"));

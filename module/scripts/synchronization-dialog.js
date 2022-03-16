@@ -36,11 +36,11 @@ SynchronizationDialog._updateTableRowsWithSyncStates = function() {
 }
 
 SynchronizationDialog.launch = function() {
-	const disscoSchema = theProject.overlayModels.disscoSchema;
+	const cordraUploadSchema = theProject.overlayModels.cordraUploadSchema;
 	const initOptions = {
-		url: (disscoSchema && disscoSchema.authServerUrl) ?? "",
-		realm: (disscoSchema && disscoSchema.authRealm) ?? "",
-		clientId: (disscoSchema && disscoSchema.authClientId) ?? "",
+		url: (cordraUploadSchema && cordraUploadSchema.authServerUrl) ?? "",
+		realm: (cordraUploadSchema && cordraUploadSchema.authRealm) ?? "",
+		clientId: (cordraUploadSchema && cordraUploadSchema.authClientId) ?? "",
 	};
 
 	try {
@@ -92,7 +92,7 @@ SynchronizationDialog.initWithAuthInfo = function(isAuthenticated) {
 		}, 20000); // intervall every 20 seconds
 	}
 
-	const frame = $(DOM.loadHTML("nsidr", "scripts/dialogs/synchronization-dialog.html"));
+	const frame = $(DOM.loadHTML("cordra-uploader", "scripts/dialogs/synchronization-dialog.html"));
 	const elmts = this.elmts = DOM.bind(frame);
 
 	if (keycloak.authenticated) {
@@ -110,10 +110,10 @@ SynchronizationDialog.initWithAuthInfo = function(isAuthenticated) {
 
 	const level = DialogSystem.showDialog(frame);
 
-	const schema = theProject.overlayModels.disscoSchema
+	const schema = theProject.overlayModels.cordraUploadSchema
 	if (schema && schema.columnMapping) {
 		Refine.postProcess(
-			"nsidr",
+			"cordra-uploader",
 			"preview-digital-specimens",
 			{},
 			{
@@ -140,7 +140,7 @@ SynchronizationDialog.initWithAuthInfo = function(isAuthenticated) {
 
 	elmts.preSyncButton.click(function() {
 		Refine.postProcess(
-			"nsidr",
+			"cordra-uploader",
 			"prepare-for-synchronization",
 			{},
 			{
@@ -188,7 +188,7 @@ SynchronizationDialog.initWithAuthInfo = function(isAuthenticated) {
 
 	elmts.syncButton.click(function() {
 		Refine.postProcess(
-			"nsidr",
+			"cordra-uploader",
 			"perform-nsidr-edits",
 			{},
 			{
@@ -231,7 +231,7 @@ SynchronizationDialog.initWithAuthInfo = function(isAuthenticated) {
 
 
 SynchronizationDialog.showError = function(e) {
-	const frame = $(DOM.loadHTML("nsidr", "scripts/dialogs/synchronization-dialog.html"));
+	const frame = $(DOM.loadHTML("cordra-uploader", "scripts/dialogs/synchronization-dialog.html"));
 	const elmts = this.elmts = DOM.bind(frame);
 	const level = DialogSystem.showDialog(frame);
 	elmts.synchronizationInfoText.text("Error: Could not connect to the authentication server. Please check and save the auth server url and try again");

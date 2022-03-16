@@ -55,7 +55,7 @@ function init() {
 			"scripts/project-injection.js",
 			"scripts/menu-bar-extension.js",
 			"scripts/setup-connection-dialog.js",
-			"scripts/ods-schema-alignment-dialog.js",
+			"scripts/cordra-schema-alignment-dialog.js",
 			"scripts/synchronization-dialog.js",
 		]
 	);

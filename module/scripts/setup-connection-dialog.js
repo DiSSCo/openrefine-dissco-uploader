@@ -4,7 +4,7 @@ function setConnectionDefaults(elmts){
 }
 
 SetupConnectionDialog.launch = function() {
-	const frame = $(DOM.loadHTML("nsidr", "scripts/dialogs/setup-connection-dialog.html"));
+	const frame = $(DOM.loadHTML("cordra-uploader", "scripts/dialogs/setup-connection-dialog.html"));
 	const elmts = this.elmts = DOM.bind(frame);
 
 	const level = DialogSystem.showDialog(frame);
@@ -21,7 +21,7 @@ SetupConnectionDialog.launch = function() {
 	
 	elmts.saveButton.click(function() {
 		Refine.postProcess(
-			"nsidr",
+			"cordra-uploader",
 			"save-connection",
 			{},
 			{
@@ -48,7 +48,7 @@ SetupConnectionDialog.launch = function() {
 	});
 	
 	SetupConnectionDialog.setConnectionDefaults(elmts);
-	const schema = theProject.overlayModels.disscoSchema;
+	const schema = theProject.overlayModels.cordraUploadSchema;
 	if(schema){
 		const cordraServerUrl = schema.cordraServerUrl;
 		if(cordraServerUrl){
@@ -71,7 +71,6 @@ SetupConnectionDialog.launch = function() {
 
 
 SetupConnectionDialog.setConnectionDefaults = function(elmts){
-	console.log("elmts", elmts)
 	elmts.inputDSServer.val("https://nsidr.org");
 	elmts.inputAuthServer.val("https://login-demo.dissco.eu/auth");
 	elmts.inputAuthRealm.val("SynthesysPlus");

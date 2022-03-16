@@ -2,9 +2,6 @@ package eu.dissco.refineextension.schema;
 
 import java.util.Map;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -16,7 +13,9 @@ import com.fasterxml.jackson.databind.JsonNode;
 import eu.dissco.refineextension.model.SyncState;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class DisscoSchema implements OverlayModel {
+public class CordraUploadSchema implements OverlayModel {
+  
+  public static String overlayModelKey = "cordraUploadSchema";
 
   @JsonProperty("cordraServerUrl")
   protected String cordraServerUrl;
@@ -39,7 +38,7 @@ public class DisscoSchema implements OverlayModel {
   /**
    * Constructor.
    */
-  public DisscoSchema() {
+  public CordraUploadSchema() {
 
   }
 
@@ -47,7 +46,7 @@ public class DisscoSchema implements OverlayModel {
    * Constructor for deserialization via Jackson
    */
   @JsonCreator
-  public DisscoSchema(@JsonProperty("cordraServerUrl") String cordraServerUrl,
+  public CordraUploadSchema(@JsonProperty("cordraServerUrl") String cordraServerUrl,
       @JsonProperty("authServerUrl") String authServerUrl,
       @JsonProperty("authRealm") String authRealm,
       @JsonProperty("authClientId") String authClientId,

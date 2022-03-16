@@ -1,6 +1,5 @@
 package eu.dissco.refineextension.commands;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.JsonNode;
 
 import com.google.refine.browsing.Engine;
@@ -22,15 +21,13 @@ import javax.servlet.ServletException;
 import com.google.gson.JsonObject;
 
 import net.cnri.cordra.api.CordraException;
-
+import eu.dissco.refineextension.model.SyncResult;
 import eu.dissco.refineextension.model.SyncState;
 import eu.dissco.refineextension.processing.DigitalObjectProcessor;
-import eu.dissco.refineextension.schema.DisscoSchema;
+import eu.dissco.refineextension.schema.CordraUploadSchema;
 import eu.dissco.refineextension.util.DigitalObjectUtil;
 
 public class PrepareForSynchronizationCommand extends Command {
-
-  private String overlayModelKey = "disscoSchema";
 
   @Override
   public void doPost(HttpServletRequest request, HttpServletResponse response)
@@ -45,7 +42,8 @@ public class PrepareForSynchronizationCommand extends Command {
       }
       Project project = getProject(request);
       Engine engine = getEngine(request, project);
-      DisscoSchema savedSchema = (DisscoSchema) project.overlayModels.get(overlayModelKey);
+      CordraUploadSchema savedSchema =
+          (CordraUploadSchema) project.overlayModels.get(CordraUploadSchema.overlayModelKey);
       // To-Do check that schema haas ColumnMapping
       JsonNode columnMapping = savedSchema.getColumnMapping();
       // Map syncStatusForRows = savedSchema.getSyncStatusForRows();
@@ -57,34 +55,12 @@ public class PrepareForSynchronizationCommand extends Command {
 
       // preserve the pre-sync results for the synchronization command
       savedSchema.setSyncStatusForRows(syncStatusForRows);
-      project.overlayModels.put(overlayModelKey, savedSchema);
+      project.overlayModels.put(CordraUploadSchema.overlayModelKey, savedSchema);
 
-      respondJSON(response, new NsidrSyncResult(syncStatusForRows));
+      respondJSON(response, new SyncResult(syncStatusForRows));
     } catch (Exception e) {
       e.printStackTrace();
       respondException(response, e);
-    }
-  }
-
-  protected static class NsidrSyncResult {
-
-    @JsonProperty("code")
-    protected String code;
-    @JsonProperty("message")
-    protected String message;
-    @JsonProperty("results")
-    Map<Integer, SyncState> results;
-
-    public NsidrSyncResult(String code, String message) {
-      this.code = code;
-      this.message = message;
-      this.results = null;
-    }
-
-    public NsidrSyncResult(Map<Integer, SyncState> results) {
-      this.code = "ok";
-      this.message = null;
-      this.results = results;
     }
   }
 
@@ -123,7 +99,8 @@ public class PrepareForSynchronizationCommand extends Command {
             DigitalObjectUtil.rowToJsonObject(row, this.columnMapping, false);
         JsonNode differencesPatch = null;
         try {
-          differencesPatch = processorClient.getDigitalObjectDataDiff(digitalObjectContent, doContentToUpload);
+          differencesPatch =
+              processorClient.getDigitalObjectDataDiff(digitalObjectContent, doContentToUpload);
         } catch (IOException | CordraException e) {
           System.out.println("json processing exception!");
           e.printStackTrace();

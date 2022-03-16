@@ -1,11 +1,11 @@
 <div class="dialog-frame wikibase-dialog" style="width: 700px">
-  <div class="dialog-header" bind="dialogHeader">ODS schema alignment</div>
+  <div class="dialog-header" bind="dialogHeader">Cordra schema alignment</div>
   <div class="dialog-body" bind="dialogBody">
-    <p>Some explanations ...<a href="https://nsidr.org">nsidr.org</a></p>
+    <p>Here you can modify the mapping from the columns to the attributes of the DigitalObject</p>
         <div id="ods-mapping-tabs" class="refine-tabs">
             <ul>
                 <li><a href="#ods-mapping-tabs-schema">Edit mapping</a></li>
-                <li><a href="#ods-mapping-tabs-preview" bind="odsPreviewTabHeading">ODS preview</a></li>
+                <li><a href="#ods-mapping-tabs-preview" bind="odsPreviewTabHeading">Preview</a></li>
             </ul>
             <div id="ods-mapping-tabs-schema">
                 <div class="ods-mapping-dialog-canvas">
@@ -14,7 +14,7 @@
                 </div>
             </div>
             <div id="ods-mapping-tabs-preview" style="display: none;">
-                <div class="ods-mapping-dialog-subheader">This is a sample <code>ods</code> representation in json-ld of (up-to) the <em>first 5</em> rows</div>
+                <div class="ods-mapping-dialog-subheader">This is a sample <code>ods</code> representation in json of (up-to) the <em>first 5</em> rows</div>
                 <pre class="ods-mapping-dialog-canvas" id="ods-mapping-dialog-preview"></pre>
             </div>
         </div>
@@ -23,7 +23,7 @@
     <div class="nsidr-buttons">
 		<span>
 	      <button class="button" bind="closeButton" id="close-button">Close</button>
-	      <button class="button" bind="resetButton">Reset to ODS</button>
+	      <button class="button" bind="resetButton">Reset to ODS default</button>
 	      <button class="button" bind="changeTargetDOButton">Change target digital object</button>
 		  <span bind="changeTargetArea" hidden>
 			<input bind="changeTargetDOInput"></input><button bind="changeTargetDOEnter">></button>

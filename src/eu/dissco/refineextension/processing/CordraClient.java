@@ -13,19 +13,18 @@ import com.google.gson.JsonObject;
 import net.dona.doip.InDoipMessage;
 import net.dona.doip.client.DigitalObject;
 
-import net.cnri.cordra.api.CordraClient;
 import net.cnri.cordra.api.CordraException;
 import net.cnri.cordra.api.CordraObject;
 import net.cnri.cordra.api.SearchResults;
 import net.cnri.cordra.api.Options;
 import net.cnri.cordra.api.TokenUsingHttpCordraClient;
 
-public class NsidrClient {
+public class CordraClient {
   public static String NSIDR_URL = "http://localhost:8080/api";
   private String authToken;
-  private CordraClient nsidrRestClient;
+  private TokenUsingHttpCordraClient nsidrRestClient;
 
-  public NsidrClient(String token) {
+  public CordraClient(String token) {
     try {
       // the first parameters username and password be ignored because this information is contained
       // in the jwt token which will be handled by a custom method in Cordra

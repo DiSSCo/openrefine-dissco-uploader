@@ -432,7 +432,7 @@ function serializeSchemaRecursive(tbody, schemaObjectPart, pathAsArray, key, col
 }
 
 OdsSchemaAlignmentDialog.initColumnMapping = function(reset = false) {
-	const savedSchema = theProject.overlayModels.disscoSchema;
+	const savedSchema = theProject.overlayModels.cordraUploadSchema;
 	if (savedSchema && savedSchema.columnMapping && !reset) {
 		columnMapping = savedSchema.columnMapping;
 	} else {
@@ -457,7 +457,7 @@ OdsSchemaAlignmentDialog.buildTableHtml = function() {
 }
 
 OdsSchemaAlignmentDialog.launch = function() {
-	const frame = $(DOM.loadHTML("nsidr", "scripts/dialogs/ods-schema-alignment-dialog.html"));
+	const frame = $(DOM.loadHTML("cordra-uploader", "scripts/dialogs/cordra-schema-alignment-dialog.html"));
 	const elmts = this.elmts = DOM.bind(frame);
 
 	const level = DialogSystem.showDialog(frame);
@@ -475,7 +475,7 @@ OdsSchemaAlignmentDialog.launch = function() {
 
 	elmts.odsPreviewTabHeading.click(function() {
 		Refine.postProcess(
-			"nsidr",
+			"cordra-uploader",
 			"preview-digital-specimens",
 			{},
 			{
@@ -495,7 +495,7 @@ OdsSchemaAlignmentDialog.launch = function() {
 
 	elmts.saveSchemaButton.click(function() {
 		Refine.postProcess(
-			"nsidr",
+			"cordra-uploader",
 			"save-schema",
 			{},
 			{

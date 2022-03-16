@@ -25,21 +25,22 @@ import net.cnri.cordra.api.Payload;
 
 public class DigitalObjectProcessor {
 
-  private NsidrClient nsidrClient;
+  private CordraClient nsidrClient;
   private JsonNode columnMapping;
   private Map<Integer, List<String>> colIndicesToModify;
 
 
   public DigitalObjectProcessor(String authToken, JsonNode columnMapping,
       Map<Integer, List<String>> colIndicesToModify) {
-    this.nsidrClient = new NsidrClient(authToken);
+    this.nsidrClient = new CordraClient(authToken);
     this.columnMapping = columnMapping;
     this.colIndicesToModify = colIndicesToModify;
   }
 
   private void digitalObjectPostProcessing(CordraObject co, Row row,
       List<String> objectJsonPathAsList) {
-    Iterator<Map.Entry<Integer, List<String>>> mapIter = this.colIndicesToModify.entrySet().iterator();
+    Iterator<Map.Entry<Integer, List<String>>> mapIter =
+        this.colIndicesToModify.entrySet().iterator();
     while (mapIter.hasNext()) {
       JsonElement contentJsonElement = co.content;
       List<String> objectJsonPathAsListClone = this.shallowCloneList(objectJsonPathAsList);
@@ -143,21 +144,7 @@ public class DigitalObjectProcessor {
       type = ob.get("type");
       contentEl = ob.get("content");
       if (!(id != null && type != null && contentEl != null)) {
-        Iterator<Map.Entry<String, JsonElement>> iter = ob.entrySet().iterator();
-        while (iter.hasNext()) {
-          Map.Entry<String, JsonElement> keyValue = iter.next();
-
-          List<String> jsonPathAsListCopy = new ArrayList<String>();
-          for (String item : jsonPathAsList)
-            jsonPathAsListCopy.add(item);
-          jsonPathAsListCopy.add(keyValue.getKey());
-
-          CordraObject innerObject =
-              createDigitalObjectsRecursive(keyValue.getValue(), row, jsonPathAsListCopy);
-          if (innerObject != null) {
-            ob.addProperty(keyValue.getKey(), innerObject.id);
-          }
-        }
+        processUploadObjectPart(ob, jsonPathAsList, row, "create");
       } else {
         CordraObject objectToCreate = new CordraObject();
         if (id.isJsonNull()) {
@@ -166,10 +153,10 @@ public class DigitalObjectProcessor {
           objectToCreate.id = id.getAsString();
         }
         objectToCreate.type = type.getAsString();
-        if(ob.has("payloads")) {
+        if (ob.has("payloads")) {
           JsonArray payloads = ob.get("payloads").getAsJsonArray();
           Iterator<JsonElement> payloadsIter = payloads.iterator();
-          while(payloadsIter.hasNext()) {
+          while (payloadsIter.hasNext()) {
             JsonObject payloadOb = payloadsIter.next().getAsJsonObject();
             Payload payload = new Payload();
             try {
@@ -178,10 +165,10 @@ public class DigitalObjectProcessor {
               payload.setInputStream(in);
               String filename = name;
               String mediaType = null;
-              if(payloadOb.has("filename")) {
+              if (payloadOb.has("filename")) {
                 filename = payloadOb.get("filename").getAsString();
               }
-              if(payloadOb.has("mediaType")) {
+              if (payloadOb.has("mediaType")) {
                 mediaType = payloadOb.get("mediaType").getAsString();
               }
               objectToCreate.addPayload(name, filename, mediaType, in);
@@ -191,21 +178,7 @@ public class DigitalObjectProcessor {
           }
         }
         JsonObject content = contentEl.getAsJsonObject();
-        Iterator<Map.Entry<String, JsonElement>> iter = content.entrySet().iterator();
-        while (iter.hasNext()) {
-          Map.Entry<String, JsonElement> keyValue = iter.next();
-
-          List<String> jsonPathAsListCopy = new ArrayList<String>();
-          for (String item : jsonPathAsList)
-            jsonPathAsListCopy.add(item);
-          jsonPathAsListCopy.add(keyValue.getKey());
-
-          CordraObject innerObject =
-              createDigitalObjectsRecursive(keyValue.getValue(), row, jsonPathAsListCopy);
-          if (innerObject != null) {
-            content.addProperty(keyValue.getKey(), innerObject.id);
-          }
-        }
+        processUploadObjectPart(content, jsonPathAsList, row, "create");
         objectToCreate.content = content;
         CordraObject createdDO = this.nsidrClient.create(objectToCreate);
         int idColumnIndex = getIdMappingByJsonPathAsList(jsonPathAsList);
@@ -213,23 +186,8 @@ public class DigitalObjectProcessor {
         digitalObjectPostProcessing(createdDO, row, jsonPathAsList);
         return createdDO;
       }
-    } else if(rowToObject.isJsonArray()){
-      JsonArray ar = rowToObject.getAsJsonArray();
-      int index = 0;
-      Iterator<JsonElement> iter = ar.iterator();
-      while (iter.hasNext()) {
-        List<String> jsonPathAsListCopy = new ArrayList<String>();
-        for (String item : jsonPathAsList)
-          jsonPathAsListCopy.add(item);
-        jsonPathAsListCopy.add(String.valueOf(index));
-
-        CordraObject innerObject =
-            createDigitalObjectsRecursive(iter.next(), row, jsonPathAsListCopy);
-        if (innerObject != null) {
-          ar.set(index, new JsonPrimitive(innerObject.id));
-        }
-        index += 1;
-      }
+    } else if (rowToObject.isJsonArray()) {
+      uploadProcessArrayPart(rowToObject, jsonPathAsList, row, "create");
     }
     return null;
   }
@@ -264,76 +222,76 @@ public class DigitalObjectProcessor {
       return null;
     }
     JsonElement id, type, contentEl;
-    boolean isArray = rowToObject.isJsonArray();
-    if (!isArray) {
+    if (rowToObject.isJsonObject()) {
       JsonObject ob = rowToObject.getAsJsonObject();
       id = ob.get("id");
       type = ob.get("type");
       contentEl = ob.get("content");
       if (!(id != null && type != null && contentEl != null)) {
-        Iterator<Map.Entry<String, JsonElement>> iter = ob.entrySet().iterator();
-        while (iter.hasNext()) {
-          Map.Entry<String, JsonElement> keyValue = iter.next();
-
-          List<String> jsonPathAsListCopy = new ArrayList<String>();
-          for (String item : jsonPathAsList)
-            jsonPathAsListCopy.add(item);
-          jsonPathAsListCopy.add(keyValue.getKey());
-
-          CordraObject innerObject =
-              updateDigitalObjectsRecursive(keyValue.getValue(), row, jsonPathAsListCopy);
-          if (innerObject != null) {
-            ob.addProperty(keyValue.getKey(), innerObject.id);
-          }
-        }
+        processUploadObjectPart(ob, jsonPathAsList, row, "update");
       } else {
         CordraObject objectToUpdate = new CordraObject();
         objectToUpdate.id = id.getAsString();
         objectToUpdate.type = type.getAsString();
         JsonObject content = contentEl.getAsJsonObject();
-        Iterator<Map.Entry<String, JsonElement>> iter = content.entrySet().iterator();
-        while (iter.hasNext()) {
-          Map.Entry<String, JsonElement> keyValue = iter.next();
-
-          List<String> jsonPathAsListCopy = new ArrayList<String>();
-          for (String item : jsonPathAsList)
-            jsonPathAsListCopy.add(item);
-          jsonPathAsListCopy.add(keyValue.getKey());
-
-          CordraObject innerObject =
-              updateDigitalObjectsRecursive(keyValue.getValue(), row, jsonPathAsListCopy);
-          if (innerObject != null) {
-            content.addProperty(keyValue.getKey(), innerObject.id);
-          }
-        }
+        processUploadObjectPart(content, jsonPathAsList, row, "update");
         objectToUpdate.content = content;
         CordraObject updatedDO = this.nsidrClient.update(objectToUpdate);
         digitalObjectPostProcessing(updatedDO, row, jsonPathAsList);
         return updatedDO;
       }
-    } else {
-      JsonArray ar = rowToObject.getAsJsonArray();
-      Iterator<JsonElement> iter = ar.iterator();
-      int index = 0;
-      while (iter.hasNext()) {
-
-        List<String> jsonPathAsListCopy = new ArrayList<String>();
-        for (String item : jsonPathAsList)
-          jsonPathAsListCopy.add(item);
-        jsonPathAsListCopy.add(String.valueOf(index));
-
-        CordraObject innerObject =
-            updateDigitalObjectsRecursive(iter.next(), row, jsonPathAsListCopy);
-        if (innerObject != null) {
-          ar.set(index, new JsonPrimitive(innerObject.id));
-        }
-        index += 1;
-      }
+    } else if (rowToObject.isJsonArray()) {
+      uploadProcessArrayPart(rowToObject, jsonPathAsList, row, "update");
     }
     return null;
   }
-  
-  private List<String> shallowCloneList(List<String> l){
+
+  private void processUploadObjectPart(JsonObject objectPart, List<String> jsonPathAsList, Row row,
+      String uploadAction) throws CordraException {
+    Iterator<Map.Entry<String, JsonElement>> iter = objectPart.entrySet().iterator();
+    while (iter.hasNext()) {
+      Map.Entry<String, JsonElement> keyValue = iter.next();
+
+      List<String> jsonPathAsListCopy = new ArrayList<String>();
+      for (String item : jsonPathAsList)
+        jsonPathAsListCopy.add(item);
+      jsonPathAsListCopy.add(keyValue.getKey());
+
+      CordraObject innerObject = null;
+      if (uploadAction.equals("create")) {
+        innerObject = createDigitalObjectsRecursive(keyValue.getValue(), row, jsonPathAsListCopy);
+      } else if (uploadAction.equals("update")) {
+        innerObject = updateDigitalObjectsRecursive(keyValue.getValue(), row, jsonPathAsListCopy);
+      }
+      if (innerObject != null) {
+        objectPart.addProperty(keyValue.getKey(), innerObject.id);
+      }
+    }
+  }
+
+  private void uploadProcessArrayPart(JsonElement objectPart, List<String> jsonPathAsList, Row row,
+      String uploadAction) throws CordraException {
+    JsonArray ar = objectPart.getAsJsonArray();
+    Iterator<JsonElement> iter = ar.iterator();
+    int index = 0;
+    while (iter.hasNext()) {
+      List<String> jsonPathAsListCopy = this.shallowCloneList(jsonPathAsList);
+      jsonPathAsListCopy.add(String.valueOf(index));
+
+      CordraObject innerObject = null;
+      if (uploadAction.equals("create")) {
+        innerObject = createDigitalObjectsRecursive(iter.next(), row, jsonPathAsListCopy);
+      } else if (uploadAction.equals("update")) {
+        innerObject = updateDigitalObjectsRecursive(iter.next(), row, jsonPathAsListCopy);
+      }
+      if (innerObject != null) {
+        ar.set(index, new JsonPrimitive(innerObject.id));
+      }
+      index += 1;
+    }
+  }
+
+  private List<String> shallowCloneList(List<String> l) {
     List<String> clone = new ArrayList<String>();
     for (String item : l)
       clone.add(item);
