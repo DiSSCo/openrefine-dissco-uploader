@@ -129,10 +129,6 @@ public class PerformNsidrEditsCommand extends Command {
         try {
           List<String> jsonPathAsList = new ArrayList<String>();
           if (syncStatus == "new") {
-            System.out
-                .println("found new: " + String.valueOf(rowIndex));
-
-           
             CordraObject newDO = syncProcessor.createDigitalObjectsRecursive((JsonElement) contentToUpload, row, jsonPathAsList);
             PerformNsidrEditsCommand.logger.info("Created new DO: " + newDO.id);
           } else {

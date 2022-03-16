@@ -24,6 +24,32 @@ public class DigitalObjectUtil {
       String key = "id";
       JsonNode columnMappingNodeInner = columnMappingNode.get(key);
       addAttributeFromRow(columnMappingNodeInner, key, row, digitalObject);
+
+      if (columnMappingNode.has("payloads")) {
+        JsonNode columnMappingNodePayloads = columnMappingNode.get("payloads");
+        if (columnMappingNodePayloads.has("values")) {
+          JsonNode columnMappingNodePayloadsInner = columnMappingNodePayloads.get("values");
+          if (columnMappingNodePayloadsInner.isArray()) {
+            JsonArray payloads = new JsonArray();
+            Iterator<JsonNode> iter = columnMappingNodePayloadsInner.elements();
+            while (iter.hasNext()) {
+              JsonNode payloadMapping = iter.next();
+              JsonObject payload = new JsonObject();
+              columnMappingNodeInner = payloadMapping.get("values");
+              for (String payloadKey : new String[] {"name", "filename", "mediaType", "path"}) {
+                if (columnMappingNodeInner.has(payloadKey)) {
+                  addAttributeFromRow(columnMappingNodeInner.get(payloadKey), payloadKey, row,
+                      payload);
+                }
+              }
+              payloads.add(payload);
+            }
+            if (payloads.size() > 0) {
+              digitalObject.add("payloads", payloads);
+            }
+          }
+        }
+      }
     }
     JsonNode values = columnMappingNode.get("values");
     Iterator<Map.Entry<String, JsonNode>> subSectionIter = values.fields();
@@ -64,13 +90,20 @@ public class DigitalObjectUtil {
   public static void addAttributeFromRow(JsonNode columnMappingNode, String key, Row row,
       JsonObject jobject) {
     JsonNode colIndexNode = columnMappingNode.get("mapping");
-    if (colIndexNode == null) {
+    if (colIndexNode == null || colIndexNode.isNull()) {
       JsonNode defaultValueNode = columnMappingNode.get("default");
       if (defaultValueNode != null) {
-        colIndexNode = defaultValueNode;
+        if (defaultValueNode.isNumber()) {
+          jobject.addProperty(key, defaultValueNode.asDouble());
+        } else if (defaultValueNode.isTextual()) {
+          String defaultValue = defaultValueNode.asText();
+          if (defaultValue.length() > 0) {
+            jobject.addProperty(key, defaultValue);
+          }
+        }
       }
     } else {
-      if (!colIndexNode.isNull() && colIndexNode.isInt()) {
+      if (colIndexNode.isInt()) {
         int colIndex = colIndexNode.asInt();
         Object cellValue = row.getCellValue(colIndex);
 

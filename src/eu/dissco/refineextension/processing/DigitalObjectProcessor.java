@@ -1,11 +1,13 @@
 
 package eu.dissco.refineextension.processing;
 
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
-import java.util.ListIterator;
 import java.util.Map;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -19,6 +21,7 @@ import com.google.refine.model.Cell;
 import com.google.refine.model.Row;
 import net.cnri.cordra.api.CordraException;
 import net.cnri.cordra.api.CordraObject;
+import net.cnri.cordra.api.Payload;
 
 public class DigitalObjectProcessor {
 
@@ -134,8 +137,7 @@ public class DigitalObjectProcessor {
       return null;
     }
     JsonElement id, type, contentEl;
-    boolean isArray = rowToObject.isJsonArray();
-    if (!isArray) {
+    if (rowToObject.isJsonObject()) {
       JsonObject ob = rowToObject.getAsJsonObject();
       id = ob.get("id");
       type = ob.get("type");
@@ -164,6 +166,30 @@ public class DigitalObjectProcessor {
           objectToCreate.id = id.getAsString();
         }
         objectToCreate.type = type.getAsString();
+        if(ob.has("payloads")) {
+          JsonArray payloads = ob.get("payloads").getAsJsonArray();
+          Iterator<JsonElement> payloadsIter = payloads.iterator();
+          while(payloadsIter.hasNext()) {
+            JsonObject payloadOb = payloadsIter.next().getAsJsonObject();
+            Payload payload = new Payload();
+            try {
+              String name = payloadOb.get("name").getAsString();
+              InputStream in = new FileInputStream(payloadOb.get("path").getAsString());
+              payload.setInputStream(in);
+              String filename = name;
+              String mediaType = null;
+              if(payloadOb.has("filename")) {
+                filename = payloadOb.get("filename").getAsString();
+              }
+              if(payloadOb.has("mediaType")) {
+                mediaType = payloadOb.get("mediaType").getAsString();
+              }
+              objectToCreate.addPayload(name, filename, mediaType, in);
+            } catch (FileNotFoundException e) {
+              e.printStackTrace();
+            }
+          }
+        }
         JsonObject content = contentEl.getAsJsonObject();
         Iterator<Map.Entry<String, JsonElement>> iter = content.entrySet().iterator();
         while (iter.hasNext()) {
@@ -187,12 +213,11 @@ public class DigitalObjectProcessor {
         digitalObjectPostProcessing(createdDO, row, jsonPathAsList);
         return createdDO;
       }
-    } else {
+    } else if(rowToObject.isJsonArray()){
       JsonArray ar = rowToObject.getAsJsonArray();
-      ListIterator<JsonElement> iter = (ListIterator<JsonElement>) ar.iterator();
+      int index = 0;
+      Iterator<JsonElement> iter = ar.iterator();
       while (iter.hasNext()) {
-        int index = iter.nextIndex();
-
         List<String> jsonPathAsListCopy = new ArrayList<String>();
         for (String item : jsonPathAsList)
           jsonPathAsListCopy.add(item);
@@ -203,6 +228,7 @@ public class DigitalObjectProcessor {
         if (innerObject != null) {
           ar.set(index, new JsonPrimitive(innerObject.id));
         }
+        index += 1;
       }
     }
     return null;
@@ -210,7 +236,7 @@ public class DigitalObjectProcessor {
 
   public JsonObject getDeserializedDigitalObjectContent(String id) {
     JsonObject content = null;
-    if (id.length() > 0) {
+    if (id != null && id.length() > 0) {
       try {
         JsonElement response =
             this.nsidrClient.performDoipOperationGetRest(id, "getDeserializedContent");

@@ -212,8 +212,9 @@ SynchronizationDialog.initWithAuthInfo = function(isAuthenticated) {
 								errorCount += 1;
 							}
 						});
-
 						elmts.synchronizationInfoText.text(`Synchronization result: ${inSyncCount} objects are synchronized, ${errorCount} objects had an error during synchronization}`);
+					} else if (data.code === "error"){
+						elmts.synchronizationInfoText.text("An error occurred, please check application logs");
 					}
 				},
 				onFinallyDone: function() {

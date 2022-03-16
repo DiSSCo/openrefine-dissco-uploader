@@ -1,32 +1,35 @@
-/*const OdsSchemaAlignmentDialog = {};
-let columnMapping;
-const defaultColumnMapping = {
-	doi: null,
-	"ods:authoritative": {
-		"ods:curatedObjectID": null,
-		"ods:midsLevel": null,
-		"ods:name": null,
-		"ods:institution": null,
-		"ods:institutionCode": null,
-		"ods:materialType": null
-	},
-	"ods:mediaCollection": {
-		"ods:mediaObjects": []
-	},
-	"ods:extended": {
-
-	}
-};
-const mediaObjectMapping = {
-	"mediatype": null,
-	"ods:mediaId": null,
-	"ods:mediaUrl": null,
-	"ods:imageWidth": null,
-	"ods:imageHeight": null,
-	"ods:imageSizeUnit": null
-}*/
 const OdsSchemaAlignmentDialog = {};
 let columnMapping;
+
+const presetsMappings = {
+	"mediaObject": {
+		"mappingType": "digitalObject",
+		"digitalObjectType": "ImageObject",
+		"id": {
+			"mappingType": "attribute",
+			"mapping": null,
+		},
+		"values": {
+			"ods:mediaUrl": {
+				"mappingType": "attribute",
+				"mapping": null,
+			},
+			"ods:imageWidth": {
+				"mappingType": "attribute",
+				"mapping": null,
+			},
+			"ods:imageHeight": {
+				"mappingType": "attribute",
+				"mapping": null,
+			},
+			"ods:imageSizeUnit": {
+				"mappingType": "attribute",
+				"mapping": null,
+			}
+		}
+	}
+}
+
 const defaultColumnMapping = {
 	"mappingType": "digitalObject",
 	"digitalObjectType": "DigitalSpecimen",
@@ -64,19 +67,9 @@ const defaultColumnMapping = {
 				}
 			}
 		},
-		"ods:mediaCollection": {
-			"mappingType": "digitalObject",
-			"digitalObjectType": "MediaCollection",
-			"id": {
-				"mappingType": "attribute",
-				"mapping": null,
-			},
-			"values": {
-				"ods:mediaObjects": {
-					"mappingType": "arrayAttribute",
-					"values": []
-				}
-			}
+		"ods:media": {
+			"mappingType": "arrayAttribute",
+			"values": [{ ...presetsMappings.mediaObject }]
 		},
 		"ods:extended": {
 			"mappingType": "compositeAttribute",
@@ -84,38 +77,7 @@ const defaultColumnMapping = {
 		}
 	}
 };
-const presetsMappings = {
-	"mediaObject": {
-		"mappingType": "compositeAttribute",
-		"values": {
-			"mediatype": {
-				"mappingType": "attribute",
-				"default": "ImageObject",
-				"mapping": null,
-			},
-			"ods:mediaId": {
-				"mappingType": "attribute",
-				"mapping": null,
-			},
-			"ods:mediaUrl": {
-				"mappingType": "attribute",
-				"mapping": null,
-			},
-			"ods:imageWidth": {
-				"mappingType": "attribute",
-				"mapping": null,
-			},
-			"ods:imageHeight": {
-				"mappingType": "attribute",
-				"mapping": null,
-			},
-			"ods:imageSizeUnit": {
-				"mappingType": "attribute",
-				"mapping": null,
-			}
-		}
-	}
-}
+
 
 
 function addMappingElement(attributeName, value, pathAsArray) {
@@ -140,30 +102,39 @@ function createTableHtmlForCol(attributeName, pathAsArray, columns, attributeDat
 	const tdSelect = $('<td/>');
 	const tdDefault = $('<td/>');
 	if (attributeData.default) {
-			tdDefault.append($("<span/>").html(attributeData.default + "&nbsp;"),
-				$("<button/>", {
-					on: {
-						click: function() {
-							attributeData.default = null;
-							OdsSchemaAlignmentDialog.buildTableHtml();
-						}
-					}
-				}).text("x"));
-	} else {
-		if(attributeData.generateScopedId){
-			tdDefault.text("ID will be generated when mapping field is empty string");
-		}
-		const defaultInput = $("<input/>");
-		tdDefault.append(defaultInput,
+		tdDefault.append($("<span/>").html(attributeData.default + "&nbsp;"),
 			$("<button/>", {
+				on: {
+					click: function() {
+						attributeData.default = null;
+						OdsSchemaAlignmentDialog.buildTableHtml();
+					}
+				}
+			}).text("x"));
+	} else {
+		if (attributeData.generateScopedId) {
+			tdDefault.text("ID will be generated when mapping field is empty string");
+			tdDefault.append($("<button/>", {
+				on: {
+					click: function() {
+						attributeData.generateScopedId = null;
+						OdsSchemaAlignmentDialog.buildTableHtml();
+					}
+				}
+			}).text("x"));
+		} else {
+			const defaultInput = $("<input/>");
+			tdDefault.append(defaultInput, $("<button/>", {
 				on: {
 					click: function() {
 						attributeData.mapping = null;
 						attributeData.default = defaultInput.val();
+
 						OdsSchemaAlignmentDialog.buildTableHtml();
 					}
 				}
 			}).text(">"));
+		}
 		const select = $('<select/>', {
 			on: {
 				click: function() {
@@ -194,11 +165,18 @@ function createTableHtmlForCol(attributeName, pathAsArray, columns, attributeDat
 		on: {
 			change: function() {
 				if (this.value === "delete") {
+					console.log("will deeleeeete ", columnMapping)
+					console.log(pathAsArray)
 					let mapping = columnMapping;
 					for (let i = 0; i < pathAsArray.length - 1; i++) {
 						mapping = mapping[pathAsArray[i]];
 					}
-					delete mapping[attributeName];
+					if (Array.isArray(mapping)) {
+						mapping.splice(attributeName, 1)
+					} else {
+						delete mapping[attributeName];
+					}
+
 					OdsSchemaAlignmentDialog.buildTableHtml();
 				} else if (this.value === "generateScopedId") {
 					attributeData.generateScopedId = true;
@@ -246,7 +224,11 @@ function serializeSchemaRecursive(tbody, schemaObjectPart, pathAsArray, key, col
 						for (let i = 0; i < pathAsArrayParent.length - 1; i++) {
 							mapping = mapping[pathAsArrayParent[i]];
 						}
-						delete mapping[key];
+						if (Array.isArray(mapping)) {
+							mapping.splice(key, 1)
+						} else {
+							delete mapping[key];
+						}
 						OdsSchemaAlignmentDialog.buildTableHtml();
 					} else if (this.value === "add") {
 						let newValue = null;
@@ -319,7 +301,7 @@ function serializeSchemaRecursive(tbody, schemaObjectPart, pathAsArray, key, col
 						const selectPreset = $("<select/>", {
 							on: {
 								change: function() {
-									newValue = presetsMappings[this.value];
+									newValue = { ...presetsMappings[this.value] };
 									if (schemaObjectPart.mappingType === "arrayAttribute") {
 										okButton.click();
 									} else {
@@ -357,6 +339,37 @@ function serializeSchemaRecursive(tbody, schemaObjectPart, pathAsArray, key, col
 											tdAction.append(selectPreset);
 											this.remove();
 											break;
+										case "payload":
+											dataType = this.value;
+											if (!schemaObjectPart.payloads) {
+												schemaObjectPart.payloads = {
+													"mappingType": "arrayAtrribute",
+													"values": []
+												}
+											}
+											schemaObjectPart.payloads.values.push({
+												"mappingType": "compositeAttribute",
+												"values": {
+													"name": {
+														"mappingType": "attribute",
+														"mapping": null
+													},
+													"filename": {
+														"mappingType": "attribute",
+														"mapping": null
+													},
+													"mediaType": {
+														"mappingType": "attribute",
+														"mapping": null
+													},
+													"path": {
+														"mappingType": "attribute",
+														"mapping": null
+													}
+												}
+											});
+											OdsSchemaAlignmentDialog.buildTableHtml();
+											break;
 										// default do nothing
 									}
 								}
@@ -369,7 +382,10 @@ function serializeSchemaRecursive(tbody, schemaObjectPart, pathAsArray, key, col
 							$("<option value=\"arrayAttribute\">Array attribute</option>"),
 							$("<option value=\"digitalObject\">Digital Object</option>"),
 							$("<option value=\"preset\">Preset...</option>")
-						)
+						);
+						if (schemaObjectPart.mappingType === "digitalObject") {
+							select.append($("<option value=\"payload\">Payload</option>"))
+						}
 						tdAction.append(select);
 						this.remove();
 					}
@@ -390,12 +406,17 @@ function serializeSchemaRecursive(tbody, schemaObjectPart, pathAsArray, key, col
 		if (schemaObjectPart.mappingType === "digitalObject") {
 			tdDigitalSpecimenType.text(schemaObjectPart["digitalObjectType"]);
 		}
-		htmlRow.append(header).append(tdDigitalSpecimenType, $("<td/>"), tdAction, $("<td/>)"));
+		htmlRow.append(header).append(tdDigitalSpecimenType, $("<td/>"), tdAction);
 		tbody.append(htmlRow);
 		if (schemaObjectPart.mappingType === "digitalObject") {
 			const key = "id";
 			const storedIndex = schemaObjectPart[key];
-			tbody.append(createTableHtmlForCol(key, [...pathAsArrayParent, key], columns, storedIndex))
+			tbody.append(createTableHtmlForCol(key, [...pathAsArrayParent, key], columns, storedIndex));
+			const payloads = schemaObjectPart.payloads;
+
+			if (payloads && payloads.values && Array.isArray(payloads.values) && payloads.values.length > 0) {
+				serializeSchemaRecursive(tbody, payloads, [...pathAsArrayParent], "payloads", columns);
+			}
 		}
 		const objectKeys = Object.keys(schemaObjectPart.values);
 		for (let i = 0; i < objectKeys.length; i++) {
