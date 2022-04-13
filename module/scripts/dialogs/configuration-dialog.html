@@ -2,24 +2,32 @@
   <div class="dialog-header" bind="dialogHeader">Setup connection</div>
   <div class="dialog-body" bind="dialogBody">
     <p>Some explanations ...</p>
-        <div id="setup-connection-tabs" class="refine-tabs">
+        <div id="configuration-tabs" class="refine-tabs">
             <ul>
-                <li><a href="#setup-connection-tabs-digital-specimen">Digital specimen server</a></li>
-                <li><a href="#setup-connection-tabs-auth">Auth server</a></li>
+                <li><a href="#configuration-tabs-digital-specimen">Digital specimen server</a></li>
+                <li><a href="#configuration-tabs-auth">Auth server</a></li>
+                <li><a href="#configuration-tabs-processing">Processing options</a></li>
             </ul>
-            <div id="setup-connection-tabs-digital-specimen">
+            <div id="configuration-tabs-digital-specimen">
                 <table class="cordra-uploader-connection-table">
 					<tbody>
 						<tr><td>Digital specimen server</td><td><input bind="inputDSServer"></input></td></tr>
 					</tbody>
                 </table>
             </div>
-            <div id="setup-connection-tabs-auth" style="display: none;">
+            <div id="configuration-tabs-auth" style="display: none;">
                <table class="cordra-uploader-connection-table">
 					<tbody>
 						<tr><td>Authentication server</td><td><input bind="inputAuthServer"></input></td></tr>
 						<tr><td>Realm</td><td><input bind="inputAuthRealm"></input></td></tr>
 						<tr><td>Client id</td><td><input bind="inputAuthClientId"></input></td></tr>
+					</tbody>
+                </table>
+            </div>
+			<div id="configuration-tabs-processing" style="display: none;">
+               <table class="cordra-uploader-connection-table">
+					<tbody>
+						<tr><td>Number of parallel threads for uploading</td><td><input bind="numberOfProcessingThreads"></input></td></tr>
 					</tbody>
                 </table>
             </div>

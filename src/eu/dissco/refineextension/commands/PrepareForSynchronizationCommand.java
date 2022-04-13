@@ -16,6 +16,8 @@ import java.util.Map;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import javax.servlet.ServletException;
 
 import com.google.gson.JsonObject;
@@ -28,11 +30,11 @@ import eu.dissco.refineextension.schema.CordraUploadSchema;
 import eu.dissco.refineextension.util.DigitalObjectUtil;
 
 public class PrepareForSynchronizationCommand extends Command {
+  static final Logger logger = LoggerFactory.getLogger(PrepareForSynchronizationCommand.class);
 
   @Override
   public void doPost(HttpServletRequest request, HttpServletResponse response)
       throws ServletException, IOException {
-    // To-Do: make csrf token check
     try {
       String authToken = request.getParameter("token");
       if (authToken == null) {
@@ -44,14 +46,14 @@ public class PrepareForSynchronizationCommand extends Command {
       Engine engine = getEngine(request, project);
       CordraUploadSchema savedSchema =
           (CordraUploadSchema) project.overlayModels.get(CordraUploadSchema.overlayModelKey);
+      String cordraUrl = savedSchema.getCordraServerUrl();
       // To-Do check that schema haas ColumnMapping
       JsonNode columnMapping = savedSchema.getColumnMapping();
-      // Map syncStatusForRows = savedSchema.getSyncStatusForRows();
       Map<Integer, SyncState> syncStatusForRows = new HashMap<Integer, SyncState>();
       response.setCharacterEncoding("UTF-8");
       response.setHeader("Content-Type", "application/json");
       FilteredRows filteredRows = engine.getAllFilteredRows();
-      filteredRows.accept(project, new MyRowVisitor(columnMapping, syncStatusForRows, authToken));
+      filteredRows.accept(project, new MyRowVisitor(columnMapping, syncStatusForRows, authToken, cordraUrl));
 
       // preserve the pre-sync results for the synchronization command
       savedSchema.setSyncStatusForRows(syncStatusForRows);
@@ -71,10 +73,10 @@ public class PrepareForSynchronizationCommand extends Command {
     DigitalObjectProcessor processorClient;
 
     public MyRowVisitor(JsonNode columnMapping, Map<Integer, SyncState> syncStatusForRows,
-        String authToken) {
+        String authToken, String cordraUrl) {
       this.columnMapping = columnMapping;
       this.syncStatusForRows = syncStatusForRows;
-      this.processorClient = new DigitalObjectProcessor(authToken, this.columnMapping, null);
+      this.processorClient = new DigitalObjectProcessor(authToken, cordraUrl, this.columnMapping, null);
     }
 
     @Override
@@ -84,7 +86,7 @@ public class PrepareForSynchronizationCommand extends Command {
 
     @Override
     public boolean visit(Project project, int rowIndex, Row row) {
-      System.out.println("visiting " + String.valueOf(rowIndex));
+      logger.info("Checking sync state for row " + String.valueOf(rowIndex));
       SyncState rowSyncState = new SyncState();
       JsonObject digitalObjectContent = null;
       String id = "";
@@ -102,7 +104,7 @@ public class PrepareForSynchronizationCommand extends Command {
           differencesPatch =
               processorClient.getDigitalObjectDataDiff(digitalObjectContent, doContentToUpload);
         } catch (IOException | CordraException e) {
-          System.out.println("json processing exception!");
+          logger.error("json processing exception!");
           e.printStackTrace();
           rowSyncState = new SyncState("error",
               "Failure during comparison of the local data with the remote Digital Specimen to update. See logs.");
@@ -116,7 +118,6 @@ public class PrepareForSynchronizationCommand extends Command {
       } else {
         rowSyncState = new SyncState("new");
       }
-      System.out.println("sync state: " + rowSyncState.getSyncStatus());
       this.syncStatusForRows.put(rowIndex, rowSyncState);
       return false;
     }

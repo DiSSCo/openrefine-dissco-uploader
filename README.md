@@ -30,8 +30,10 @@ After installation, a menu item "Cordra uploader" should appear in your OpenRefi
 - You can also upload Payloads when creating DOs. In the schema mapping dialog set at least the payload name and the path on your local Computer to the file to upload. When updating existing DOs the payloads are currently ignored.
 
 # To-Do:
+- improve visualization of sync results: show errors and diffs to user (for example on mouse over -> popup)
+- for every DigitalObject in the mapping the ID field must be mandatory, if not reject saving of the column mapping
 - deal with delete
-- make as long running process (see keycloak token issue below)
+
 
 
 # Issues:

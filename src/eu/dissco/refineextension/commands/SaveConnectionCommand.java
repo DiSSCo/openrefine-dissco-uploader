@@ -42,6 +42,14 @@ public class SaveConnectionCommand extends Command {
       schema.setAuthServerUrl(request.getParameter("authServerUrl"));
       schema.setAuthRealm(request.getParameter("authRealm"));
       schema.setAuthClientId(request.getParameter("authClientId"));
+      String numberOfProcessingThreadsStr = request.getParameter("numberOfProcessingThreads");
+      int numberOfProcessingThreads = 1;
+      try {
+        numberOfProcessingThreads = Integer.parseInt(numberOfProcessingThreadsStr);
+      } catch (NumberFormatException e){
+        
+      }
+      schema.setNumberOfProcessingThreads(numberOfProcessingThreads);
       project.overlayModels.put(CordraUploadSchema.overlayModelKey, schema);
 
       response.setCharacterEncoding("UTF-8");

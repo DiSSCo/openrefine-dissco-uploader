@@ -9,6 +9,7 @@ import java.util.UUID;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.google.refine.model.Row;
 import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
 import com.google.gson.JsonNull;
 import com.google.gson.JsonObject;
 
@@ -66,39 +67,55 @@ public class DigitalObjectUtil {
 
         case "compositeAttribute":
         case "digitalObject":
-          subSectionObject.add(key, rowToJsonObject(row, columnMappingNodeInner, includeTypeAndId));
+          JsonObject relatedDigitalObject = rowToJsonObject(row, columnMappingNodeInner, includeTypeAndId);
+          if(relatedDigitalObject != null) {
+            subSectionObject.add(key, relatedDigitalObject);
+          }
           break;
         case "arrayAttribute":
           JsonArray array = new JsonArray();
           Iterator<JsonNode> items = columnMappingNodeInner.get("values").elements();
           while (items.hasNext()) {
-            JsonNode columnMappingNodeSubArray = items.next();
-            array.add(rowToJsonObject(row, columnMappingNodeSubArray, includeTypeAndId));
+            JsonNode columnMappingNodeArrayItem = items.next();
+            if(columnMappingNodeArrayItem.get("mappingType").asText().equals("attribute")) {
+              addAttributeFromRow(columnMappingNodeArrayItem, null, row, array);
+            } else {
+              JsonObject subObject = rowToJsonObject(row, columnMappingNodeArrayItem, includeTypeAndId);
+              if(subObject != null) {
+                array.add(subObject);
+              }
+            }
           }
           subSectionObject.add(key, array);
           break;
       }
     }
 
-    if (includeTypeAndId && mappingType.equals("digitalObject")) {
-      digitalObject.add("content", subSectionObject);
-      subSectionObject = digitalObject;
+    if(mappingType.equals("digitalObject")) {
+      if(subSectionObject.size() == 0) {
+        // then it has no content, only type & id
+        return null;
+      }
+      if (includeTypeAndId) {
+        digitalObject.add("content", subSectionObject);
+        subSectionObject = digitalObject;
+      }
     }
     return subSectionObject;
   }
 
   public static void addAttributeFromRow(JsonNode columnMappingNode, String key, Row row,
-      JsonObject jobject) {
+      JsonElement jElement) {
     JsonNode colIndexNode = columnMappingNode.get("mapping");
     if (colIndexNode == null || colIndexNode.isNull()) {
       JsonNode defaultValueNode = columnMappingNode.get("default");
       if (defaultValueNode != null) {
         if (defaultValueNode.isNumber()) {
-          jobject.addProperty(key, defaultValueNode.asDouble());
+          addAttributeToJsonElement(defaultValueNode.asDouble(), jElement, key);
         } else if (defaultValueNode.isTextual()) {
           String defaultValue = defaultValueNode.asText();
           if (defaultValue.length() > 0) {
-            jobject.addProperty(key, defaultValue);
+            addAttributeToJsonElement(defaultValue, jElement, key);
           }
         }
       }
@@ -117,20 +134,40 @@ public class DigitalObjectUtil {
           // we need only a shorter ID because we have a very narrow scope
           String locallyScopedId = uid.substring(0, 16);
           // To-Do: How to make sure that the ID does not exist in the local scope of the object?
-          jobject.addProperty(key, locallyScopedId);
+          addAttributeToJsonElement(locallyScopedId, jElement, key);
         } else {
           // To-do: handle case if it is other datatype
-          if (cellValue instanceof Integer) {
-            jobject.addProperty(key, (int) row.getCellValue(colIndex));
-          } else if (cellValue instanceof String) {
-            jobject.addProperty(key, (String) row.getCellValue(colIndex));
-          } else if (cellValue instanceof Float) {
-            jobject.addProperty(key, (Float) row.getCellValue(colIndex));
-          } else if (cellValue == null) {
-            jobject.add(key, JsonNull.INSTANCE);
-          }
+          addAttributeToJsonElement(cellValue, jElement, key);
         }
       }
+    }
+  }
+  
+  public static void addAttributeToJsonElement(Object value, JsonElement jElement, String key) {
+    if(jElement.isJsonObject()) {
+      JsonObject jobject = jElement.getAsJsonObject();
+      if (value instanceof Integer) {
+        jobject.addProperty(key, (int) value);
+      } else if (value instanceof String) {
+        jobject.addProperty(key, (String) value);
+      } else if (value instanceof Float) {
+        jobject.addProperty(key, (Float) value);
+      } else if (value == null) {
+        // do not add the attribute unless it is for the ID column which might be null before creation
+        if(key.equals("id")) {
+          jobject.add(key, JsonNull.INSTANCE);
+        }
+      }
+    } else if(jElement.isJsonArray()) {
+      JsonArray array = jElement.getAsJsonArray();
+      if (value instanceof Integer) {
+        array.add((int) value);
+      } else if (value instanceof String) {
+        array.add((String) value);
+      } else if (value instanceof Float) {
+        array.add((Float) value);
+      }
+        // do not add the attribute when it is null
     }
   }
 
@@ -173,7 +210,11 @@ public class DigitalObjectUtil {
             for (String item : jsonPathAsListCopy)
               jsonPathAsListCopy2.add(item);
             jsonPathAsListCopy2.add(String.valueOf(i));
-            setColsToModify(items.next(), jsonPathAsListCopy2, resultMap);
+            JsonNode nextItem = items.next();
+            if(!nextItem.get("mappingType").asText().equals("attribute")) {
+              //To-Refactor: this assumes that a plain attribute in an array is never a generateScopedId 
+              setColsToModify(nextItem, jsonPathAsListCopy2, resultMap);
+            }
             i += 1;
           }
           break;

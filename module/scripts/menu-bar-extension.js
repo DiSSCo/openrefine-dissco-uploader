@@ -7,9 +7,9 @@ $(function() {
 			"label": "Cordra upload",
 			"submenu": [
 				{
-					id: "cordra-uploader/setup-connection",
-					label: "Setup server connection",
-					click: function() { SetupConnectionDialog.launch(); }
+					id: "cordra-uploader/configuration",
+					label: "Configuration",
+					click: function() { ConfigurationDialog.launch(); }
 				},
 				{
 					id: "cordra-uploader/edit-schema-mapping",

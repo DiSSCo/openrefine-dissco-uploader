@@ -1,25 +1,26 @@
-const SetupConnectionDialog = {};
+const ConfigurationDialog = {};
 
-function setConnectionDefaults(elmts){
-}
-
-SetupConnectionDialog.launch = function() {
-	const frame = $(DOM.loadHTML("cordra-uploader", "scripts/dialogs/setup-connection-dialog.html"));
+ConfigurationDialog.launch = function() {
+	const frame = $(DOM.loadHTML("cordra-uploader", "scripts/dialogs/configuration-dialog.html"));
 	const elmts = this.elmts = DOM.bind(frame);
 
 	const level = DialogSystem.showDialog(frame);
 
-	$("#setup-connection-tabs").tabs();
+	$("#configuration-tabs").tabs();
 
 	elmts.closeButton.click(function() {
 		DialogSystem.dismissUntil(level - 1);
 	});
 
 	elmts.resetButton.click(function() {
-		SetupConnectionDialog.setConnectionDefaults(elmts);
+		ConfigurationDialog.setConnectionDefaults(elmts);
 	});
 	
 	elmts.saveButton.click(function() {
+		let numberOfProcessingThreads = parseInt(elmts.numberOfProcessingThreads.val());
+		if(isNaN(numberOfProcessingThreads)) {
+			numberOfProcessingThreads = 1;
+		}
 		Refine.postProcess(
 			"cordra-uploader",
 			"save-connection",
@@ -29,6 +30,7 @@ SetupConnectionDialog.launch = function() {
 				authServerUrl: elmts.inputAuthServer.val(),
 				authRealm: elmts.inputAuthRealm.val(),
 				authClientId: elmts.inputAuthClientId.val(),
+				numberOfProcessingThreads: numberOfProcessingThreads
 			},
 			{
 				modelsChanged: true
@@ -47,7 +49,7 @@ SetupConnectionDialog.launch = function() {
 			})
 	});
 	
-	SetupConnectionDialog.setConnectionDefaults(elmts);
+	ConfigurationDialog.setConnectionDefaults(elmts);
 	const schema = theProject.overlayModels.cordraUploadSchema;
 	if(schema){
 		const cordraServerUrl = schema.cordraServerUrl;
@@ -66,11 +68,15 @@ SetupConnectionDialog.launch = function() {
 		if(authClientId){
 			elmts.inputAuthClientId.val(authClientId);
 		}
+		const numberOfProcessingThreads = schema.numberOfProcessingThreads;
+		if(numberOfProcessingThreads){
+			elmts.numberOfProcessingThreads.val(numberOfProcessingThreads);
+		}
 	}
 };
 
 
-SetupConnectionDialog.setConnectionDefaults = function(elmts){
+ConfigurationDialog.setConnectionDefaults = function(elmts){
 	elmts.inputDSServer.val("https://nsidr.org");
 	elmts.inputAuthServer.val("https://login-demo.dissco.eu/auth");
 	elmts.inputAuthRealm.val("SynthesysPlus");

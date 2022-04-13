@@ -5,6 +5,9 @@ let syncStatesResultData = null;
 
 let keycloak = null;
 
+let authServerConnectionEstablished = false;
+let statusOperationalText = "";
+
 SynchronizationDialog._updateTableRowsWithSyncStates = function() {
 	$(".dissco-extension-element").remove();
 	$(".data-table-header > tr").prepend('<th class="column-header dissco-extension-element">Nsidr.org status</td>');
@@ -43,31 +46,30 @@ SynchronizationDialog.launch = function() {
 		clientId: (cordraUploadSchema && cordraUploadSchema.authClientId) ?? "",
 	};
 
-	try {
-		if (!keycloak) {
-			keycloak = Keycloak(initOptions);
-		}
-
-		if (!keycloak.token) {
-			keycloak
-				.init({
-					onLoad: initOptions.onLoad,
-					messageReceiveTimeout: 2500,
-				})
-				.then((auth) => {
-					SynchronizationDialog.initWithAuthInfo(auth)
-				})
-		} else {
-			SynchronizationDialog.initWithAuthInfo(keycloak.authenticated);
-		}
+	if (!keycloak || !keycloak.authenticated) {
+		keycloak = Keycloak(initOptions);
 	}
-	catch (e) {
-		SynchronizationDialog.showError(e);
-	};
+
+	if (!keycloak.token) {
+		keycloak
+			.init({
+				onLoad: initOptions.onLoad,
+				messageReceiveTimeout: 2500,
+			})
+			.then((auth) => {
+				authServerConnectionEstablished = true;
+				SynchronizationDialog.initWithAuthInfo(auth)
+			})
+			.catch(e => {
+				statusOperationalText = `Failed to contact authentication server. Make sure that the configured url ${cordraUploadSchema.authServerUrl} and parameters are correct or contact the server administrator`;
+				SynchronizationDialog.initWithAuthInfo(keycloak.authenticated);
+			})
+	} else {
+		SynchronizationDialog.initWithAuthInfo(keycloak.authenticated);
+	}
 }
 
 SynchronizationDialog.initWithAuthInfo = function(isAuthenticated) {
-	console.log("keycloak init finished, auth", isAuthenticated);
 	if (isAuthenticated) {
 		console.log(keycloak.tokenParsed);
 		console.log(keycloak.token);
@@ -83,7 +85,6 @@ SynchronizationDialog.initWithAuthInfo = function(isAuthenticated) {
 						);
 					} else {
 						console.log("token valid for " + Math.round(keycloak.tokenParsed.exp + keycloak.timeSkew - new Date().getTime() / 1000) + ' seconds')
-
 					}
 				})
 				.catch(() => {
@@ -99,14 +100,17 @@ SynchronizationDialog.initWithAuthInfo = function(isAuthenticated) {
 		elmts.loggedInText.text("You are currently logged in as " + keycloak.tokenParsed.preferred_username);
 		elmts.loginLink.attr("href", keycloak.createLogoutUrl());
 		elmts.loginLink.text("Logout");
-		elmts.synchronizationInfoText.text("You must run the Pre-Sync process before synchronization. This will compare your local data with the data at nsidr.org and list the differences for you to approve before synchronization");
+		statusOperationalText = "You must run the Pre-Sync process before synchronization. This will compare your local data with the data at nsidr.org and list the differences for you to approve before synchronization";
 		elmts.preSyncButton.attr("disabled", false);
 		elmts.preSyncButton.removeClass("button-disabled");
 	} else {
-		elmts.synchronizationInfoText.text("You must login in order to start the synchronization process");
+		if (authServerConnectionEstablished) {
+			statusOperationalText = "You must login in order to start the synchronization process";
+		}
 		elmts.loginLink.attr("href", keycloak.createLoginUrl());
 		elmts.loginLink.text("Login");
 	}
+	elmts.synchronizationInfoText.text(statusOperationalText);
 
 	const level = DialogSystem.showDialog(frame);
 
@@ -126,7 +130,7 @@ SynchronizationDialog.initWithAuthInfo = function(isAuthenticated) {
 					$("#ods-mapping-dialog-preview").text(JSON.stringify(data, null, 2));
 				},
 				onError: function(e) {
-					console.log("preview-digital-specimens on error!");
+					console.log("preview-digital-specimens on error!", e);
 				},
 			}
 		);
@@ -180,7 +184,7 @@ SynchronizationDialog.initWithAuthInfo = function(isAuthenticated) {
 					SynchronizationDialog._updateTableRowsWithSyncStates();
 				},
 				onError: function(e) {
-					console.log("preview-digital-specimens on error!");
+					console.log("preview-digital-specimens on error!", e);
 				},
 			}
 		);
@@ -194,35 +198,47 @@ SynchronizationDialog.initWithAuthInfo = function(isAuthenticated) {
 			{
 				token: keycloak.token
 			},
+			{},
 			{
-				rowsChanged: true
-			},
-			{
-				onDone: function(data) {
-					if (data.code === "ok") {
-						syncStatesResultData = data.results;
-
-						let inSyncCount = 0;
-						let errorCount = 0;
-						const iKeys = Object.keys(syncStatesResultData);
-						iKeys.forEach(function(iKey) {
-							if (syncStatesResultData[iKey].syncStatus === "synchronized") {
-								inSyncCount += 1;
-							} else if (syncStatesResultData[iKey].syncStatus === "error") {
-								errorCount += 1;
-							}
-						});
-						elmts.synchronizationInfoText.text(`Synchronization result: ${inSyncCount} objects are synchronized, ${errorCount} objects had an error during synchronization}`);
-					} else if (data.code === "error"){
-						elmts.synchronizationInfoText.text("An error occurred, please check application logs");
-					}
-				},
 				onFinallyDone: function() {
 					// this callback does not receive the data
-					SynchronizationDialog._updateTableRowsWithSyncStates();
+
+					Refine.postProcess(
+						"cordra-uploader",
+						"fetch-synchronization-status",
+						{
+							start: theProject.rowModel.start,
+							limit: theProject.rowModel.limit
+						},
+						{},
+						{
+							rowsChanged: true
+						},
+						{
+
+							onDone: function(data) {
+								if (data.code === "ok") {
+									syncStatesResultData = data.results;
+									// handle display data.stats
+									let inSyncCount = 0;
+									let errorCount = 0;
+									if (data.stats.synchronized) {
+										inSyncCount = data.stats.synchronized;
+									}
+									if (data.stats.error) {
+										errorCount = data.stats.error;
+									}
+									elmts.synchronizationInfoText.text(`Synchronization result: ${inSyncCount} objects are synchronized, ${errorCount} objects had an error during synchronization`);
+								}
+							},
+							onFinallyDone: function() {
+								SynchronizationDialog._updateTableRowsWithSyncStates();
+							}
+						}
+					);
 				},
 				onError: function(e) {
-					console.log("perform-nsidr-edits on error!");
+					console.log("perform-nsidr-edits on error", e);
 				},
 			}
 		);

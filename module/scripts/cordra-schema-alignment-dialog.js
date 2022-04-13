@@ -165,8 +165,6 @@ function createTableHtmlForCol(attributeName, pathAsArray, columns, attributeDat
 		on: {
 			change: function() {
 				if (this.value === "delete") {
-					console.log("will deeleeeete ", columnMapping)
-					console.log(pathAsArray)
 					let mapping = columnMapping;
 					for (let i = 0; i < pathAsArray.length - 1; i++) {
 						mapping = mapping[pathAsArray[i]];

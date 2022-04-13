@@ -9,7 +9,8 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.fge.jsonpatch.diff.JsonDiff;
@@ -24,15 +25,15 @@ import net.cnri.cordra.api.CordraObject;
 import net.cnri.cordra.api.Payload;
 
 public class DigitalObjectProcessor {
-
+  final static Logger logger = LoggerFactory.getLogger("DigitalObjectProcessor");
   private CordraClient nsidrClient;
   private JsonNode columnMapping;
   private Map<Integer, List<String>> colIndicesToModify;
 
 
-  public DigitalObjectProcessor(String authToken, JsonNode columnMapping,
+  public DigitalObjectProcessor(String authToken, String cordraUrl, JsonNode columnMapping,
       Map<Integer, List<String>> colIndicesToModify) {
-    this.nsidrClient = new CordraClient(authToken);
+    this.nsidrClient = new CordraClient(cordraUrl, authToken);
     this.columnMapping = columnMapping;
     this.colIndicesToModify = colIndicesToModify;
   }
@@ -100,10 +101,13 @@ public class DigitalObjectProcessor {
     JsonNode columnMappingNode = this.columnMapping;
     Iterator<String> iter = jsonPathAsList.iterator();
     while (iter.hasNext()) {
+      String value = iter.next();
+      if (value.equals("content")) {
+        value = iter.next();
+      }
       if (columnMappingNode.has("values")) {
         columnMappingNode = columnMappingNode.get("values");
       }
-      String value = iter.next();
       try {
         columnMappingNode = columnMappingNode.get(Integer.parseInt(value));
       } catch (NumberFormatException e) {
@@ -116,7 +120,6 @@ public class DigitalObjectProcessor {
 
   public JsonNode getDigitalObjectDataDiff(JsonObject contentRemote, JsonObject contentToUpload)
       throws CordraException, IOException {
-    System.out.println("getDigitalObjectDataDiff started!!!" + contentRemote + contentToUpload);
     ObjectMapper mapper = new ObjectMapper();
     // we need to convert gson JsonObject to jackson JsonNode
     // the resulting diffs will be a patch to the remote content (in order
@@ -125,8 +128,8 @@ public class DigitalObjectProcessor {
     JsonNode source = mapper.readTree(contentRemote.toString());
     final JsonNode patchNode = JsonDiff.asJson(source, target);
     if (patchNode.size() > 0) {
-      System.out.println("Found json diff:");
-      System.out.println(patchNode.toString());
+      logger.info("Found json diff:");
+      logger.info(patchNode.toString());
     }
     return patchNode;
   }
@@ -196,17 +199,19 @@ public class DigitalObjectProcessor {
     JsonObject content = null;
     if (id != null && id.length() > 0) {
       try {
-        JsonElement response =
-            this.nsidrClient.performDoipOperationGetRest(id, "getDeserializedContent");
+        JsonElement response = this.nsidrClient.performDoipOperationGetRest(id, "getDeserialized");
         content = response.getAsJsonObject();
       } catch (CordraException e1) {
-        if (e1.getResponseCode() == 401) {
-          // if the getDeserializedContent is not implemented get the digital object normally
+        int code = e1.getResponseCode();
+        if (code == 401 || code == 404) {
+          // if the getDeserialized is not implemented get the digital object normally
           try {
             CordraObject co = this.nsidrClient.get(id);
-            content = co.content.getAsJsonObject();
+            if(co != null) {
+              content = co.content.getAsJsonObject();
+            }
           } catch (CordraException e2) {
-            System.out.println("an CordraException was thrown in retrieve" + e2.getMessage());
+            logger.error("An CordraException was thrown in retrieve" + e2.getMessage());
             e2.printStackTrace();
           }
         }

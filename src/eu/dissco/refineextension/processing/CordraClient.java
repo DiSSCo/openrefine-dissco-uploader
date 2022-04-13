@@ -20,15 +20,16 @@ import net.cnri.cordra.api.Options;
 import net.cnri.cordra.api.TokenUsingHttpCordraClient;
 
 public class CordraClient {
-  public static String NSIDR_URL = "http://localhost:8080/api";
+  public String cordraUrl;
   private String authToken;
   private TokenUsingHttpCordraClient nsidrRestClient;
 
-  public CordraClient(String token) {
+  public CordraClient(String cordraUrl, String token) {
     try {
       // the first parameters username and password be ignored because this information is contained
       // in the jwt token which will be handled by a custom method in Cordra
-      this.nsidrRestClient = new TokenUsingHttpCordraClient(NSIDR_URL, "", "");
+      this.cordraUrl = cordraUrl;
+      this.nsidrRestClient = new TokenUsingHttpCordraClient(this.cordraUrl, "", "");
     } catch (CordraException e) {
       System.out.println("cordra exception" + e.getMessage());
       e.printStackTrace();

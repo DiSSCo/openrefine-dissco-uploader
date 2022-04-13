@@ -28,6 +28,9 @@ public class CordraUploadSchema implements OverlayModel {
 
   @JsonProperty("authClientId")
   protected String authClientId;
+  
+  @JsonProperty("numberOfProcessingThreads")
+  protected int numberOfProcessingThreads = 1;
 
   @JsonProperty("columnMapping")
   protected JsonNode columnMapping;
@@ -50,6 +53,7 @@ public class CordraUploadSchema implements OverlayModel {
       @JsonProperty("authServerUrl") String authServerUrl,
       @JsonProperty("authRealm") String authRealm,
       @JsonProperty("authClientId") String authClientId,
+      @JsonProperty("numberOfProcessingThreads") int numberOfProcessingThreads,
       @JsonProperty("columnMapping") JsonNode columnMapping,
       @JsonProperty("syncStatusForRows") Map<Integer, SyncState> syncStatusForRows) {
     this.cordraServerUrl = cordraServerUrl;
@@ -58,21 +62,27 @@ public class CordraUploadSchema implements OverlayModel {
     this.authClientId = authClientId;
     this.columnMapping = columnMapping;
     this.syncStatusForRows = syncStatusForRows;
+    this.numberOfProcessingThreads = numberOfProcessingThreads;
   }
 
   @JsonProperty("cordraServerUrl")
-  protected String getCordraServerUrl() {
+  public String getCordraServerUrl() {
     return cordraServerUrl;
   }
 
   @JsonProperty("authServerUrl")
-  protected String getAuthServerUrl() {
+  public String getAuthServerUrl() {
     return authServerUrl;
   }
 
   @JsonProperty("columnMapping")
   public JsonNode getColumnMapping() {
     return columnMapping;
+  }
+  
+  @JsonProperty("numberOfProcessingThreads")
+  public int getNumberOfProcessingThreads() {
+    return this.numberOfProcessingThreads;
   }
 
   @JsonProperty("syncStatusForRows")
@@ -94,6 +104,10 @@ public class CordraUploadSchema implements OverlayModel {
 
   public void setAuthClientId(String authClientId) {
     this.authClientId = authClientId;
+  }
+  
+  public void setNumberOfProcessingThreads(int numberOfProcessingThreads) {
+    this.numberOfProcessingThreads = numberOfProcessingThreads;
   }
 
   public void setColumnMapping(JsonNode columnMapping) {
