@@ -40,6 +40,10 @@ SynchronizationDialog._updateTableRowsWithSyncStates = function() {
 
 SynchronizationDialog.launch = function() {
 	const cordraUploadSchema = theProject.overlayModels.cordraUploadSchema;
+	if(cordraUploadSchema === undefined ){
+		alert("You must check and save the configuration of the Cordra plugin once before you can begin.");
+		return;
+	}
 	const initOptions = {
 		url: (cordraUploadSchema && cordraUploadSchema.authServerUrl) ?? "",
 		realm: (cordraUploadSchema && cordraUploadSchema.authRealm) ?? "",

@@ -25,6 +25,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import eu.dissco.refineextension.model.SyncState;
 import eu.dissco.refineextension.processing.DigitalObjectProcessor;
+import eu.dissco.refineextension.processing.DisscoSpecimenProcessor;
+import eu.dissco.refineextension.processing.GenericDigitalObjectProcessor;
 import eu.dissco.refineextension.schema.CordraUploadSchema;
 import eu.dissco.refineextension.util.DigitalObjectUtil;
 import net.cnri.cordra.api.CordraException;
@@ -74,30 +76,32 @@ public class UploadToCordraOperation extends EngineDependentOperation {
       CordraUploadSchema savedSchema =
           (CordraUploadSchema) _project.overlayModels.get(CordraUploadSchema.overlayModelKey);
       String cordraUrl = savedSchema.getCordraServerUrl();
+      boolean uploadingToDiSSCoInfrastructure = savedSchema.getUploadingToDiSSCoInfrastructure();
       Map<Integer, SyncState> syncStatusForRows = savedSchema.getSyncStatusForRows();
       JsonNode columnMapping = savedSchema.getColumnMapping();
       int maximumThreadsNum = savedSchema.getNumberOfProcessingThreads();
       int rowsSize = _project.rows.size();
       int batchSize = 30;
-      
+
       int processedBatched = 0;
-      
+
       List<Facet> facets = new LinkedList<Facet>();
       facets = _engineConfig.getFacetConfigs().stream().map(c -> c.apply(_project))
           .collect(Collectors.toList());
-      
+
       ThreadUploadClass[] threads = new ThreadUploadClass[maximumThreadsNum];
-      
-      while(processedBatched < rowsSize) {
-        for(int i=0; i<maximumThreadsNum; i++) {
+
+      while (processedBatched < rowsSize) {
+        for (int i = 0; i < maximumThreadsNum; i++) {
           ThreadUploadClass t = threads[i];
-          if(t == null || !t.isAlive()) {
-            _progress = processedBatched * 100 / rowsSize ;
-            int endRow = processedBatched + batchSize; 
-            if(endRow > rowsSize) {
+          if (t == null || !t.isAlive()) {
+            _progress = processedBatched * 100 / rowsSize;
+            int endRow = processedBatched + batchSize;
+            if (endRow > rowsSize) {
               endRow = rowsSize;
             }
-            ThreadUploadClass tnew = new ThreadUploadClass(columnMapping, syncStatusForRows, _authToken, cordraUrl, facets);
+            ThreadUploadClass tnew = new ThreadUploadClass(columnMapping, syncStatusForRows,
+                _authToken, cordraUrl, uploadingToDiSSCoInfrastructure, facets);
             tnew.setStartEndRows(processedBatched, endRow);
             tnew.start();
             threads[i] = tnew;
@@ -105,7 +109,7 @@ public class UploadToCordraOperation extends EngineDependentOperation {
           }
         }
       }
-      
+
 
       _progress = 100;
 
@@ -115,137 +119,153 @@ public class UploadToCordraOperation extends EngineDependentOperation {
         _project.processManager.onDoneProcess(this);
       }
     }
-      
+
     protected class ThreadUploadClass extends Thread {
-      
+
       int _startRow;
       int _endRow;
       JsonNode columnMapping;
       Map<Integer, SyncState> syncStatusForRows;
       String authToken;
       String cordraUrl;
+      boolean uploadingToDiSSCoInfrastructure;
       List<Facet> _facets;
-      
+
       void setStartEndRows(int startRow, int endRow) {
         this._startRow = startRow;
         this._endRow = endRow;
       }
-      
-      protected ThreadUploadClass(JsonNode columnMapping, Map<Integer, SyncState> syncStatusForRows,String authToken, String cordraUrl,
+
+      protected ThreadUploadClass(JsonNode columnMapping, Map<Integer, SyncState> syncStatusForRows,
+          String authToken, String cordraUrl, boolean uploadingToDiSSCoInfrastructure,
           List<Facet> facets) {
         this.columnMapping = columnMapping;
         this.syncStatusForRows = syncStatusForRows;
         this.authToken = authToken;
         this.cordraUrl = cordraUrl;
+        this.uploadingToDiSSCoInfrastructure = uploadingToDiSSCoInfrastructure;
         this._facets = facets;
       }
-      
-    @Override
-    public void run() {
-      MyConjunctiveFilteredRows filteredRows = createFilteredRows(_facets, _startRow, _endRow);
-      filteredRows.accept(_project, new MyRowVisitor(columnMapping, syncStatusForRows, authToken, cordraUrl));
-    }
-    
-    private class MyConjunctiveFilteredRows extends ConjunctiveFilteredRows {
-      private int _start;
-      private int _end;
-
-      private MyConjunctiveFilteredRows(int start, int end) {
-        _start = start;
-        _end = end;
-      }
 
       @Override
-      public void accept(Project project, RowVisitor visitor) {
-        try {
-          visitor.start(project);
+      public void run() {
+        MyConjunctiveFilteredRows filteredRows = createFilteredRows(_facets, _startRow, _endRow);
+        filteredRows.accept(_project, new MyRowVisitor(columnMapping, syncStatusForRows, authToken,
+            cordraUrl, uploadingToDiSSCoInfrastructure));
+      }
 
-          for (int rowIndex = _start; rowIndex < _end; rowIndex++) {
-            Row row = project.rows.get(rowIndex);
-            if (matchRow(project, rowIndex, row)) {
-              if (visitRow(project, visitor, rowIndex, row)) {
-                break;
+      private class MyConjunctiveFilteredRows extends ConjunctiveFilteredRows {
+        private int _start;
+        private int _end;
+
+        private MyConjunctiveFilteredRows(int start, int end) {
+          _start = start;
+          _end = end;
+        }
+
+        @Override
+        public void accept(Project project, RowVisitor visitor) {
+          try {
+            visitor.start(project);
+
+            for (int rowIndex = _start; rowIndex < _end; rowIndex++) {
+              Row row = project.rows.get(rowIndex);
+              if (matchRow(project, rowIndex, row)) {
+                if (visitRow(project, visitor, rowIndex, row)) {
+                  break;
+                }
               }
             }
+          } finally {
+            visitor.end(project);
           }
-        } finally {
-          visitor.end(project);
         }
       }
-    }
 
-    private MyConjunctiveFilteredRows createFilteredRows(List<Facet> _facets, int start, int end) {
-      MyConjunctiveFilteredRows cfr = new MyConjunctiveFilteredRows(start, end);
-      for (Facet facet : _facets) {
-        RowFilter rowFilter = facet.getRowFilter(_project);
-        if (rowFilter != null) {
-          cfr.add(rowFilter);
+      private MyConjunctiveFilteredRows createFilteredRows(List<Facet> _facets, int start,
+          int end) {
+        MyConjunctiveFilteredRows cfr = new MyConjunctiveFilteredRows(start, end);
+        for (Facet facet : _facets) {
+          RowFilter rowFilter = facet.getRowFilter(_project);
+          if (rowFilter != null) {
+            cfr.add(rowFilter);
+          }
         }
-      }
-      return cfr;
-    }
-
-    protected class MyRowVisitor implements RowVisitor {
-
-      private JsonNode columnMapping;
-      Map<Integer, SyncState> syncStatusForRows;
-      private String authToken;
-      Map<Integer, List<String>> colsToModifyAfter;
-
-      public MyRowVisitor(JsonNode columnMapping, Map<Integer, SyncState> syncStatusForRows,
-          String authToken, String cordraUrl) {
-        this.columnMapping = columnMapping;
-        this.syncStatusForRows = syncStatusForRows;
-        this.authToken = authToken;
-
-        List<String> jsonPathAsList = new ArrayList<String>();
-        Map<Integer, List<String>> colsToModifyAfter = new HashMap<Integer, List<String>>();
-        DigitalObjectUtil.setColsToModify(columnMapping, jsonPathAsList, colsToModifyAfter);
-        this.colsToModifyAfter = colsToModifyAfter;
+        return cfr;
       }
 
-      @Override
-      public void start(Project project) {
-        ;
-      }
+      protected class MyRowVisitor implements RowVisitor {
 
-      @Override
-      public boolean visit(Project project, int rowIndex, Row row) {
-        DigitalObjectProcessor syncProcessor =
-            new DigitalObjectProcessor(authToken, cordraUrl, this.columnMapping, this.colsToModifyAfter);
-        SyncState syncState = this.syncStatusForRows.get(rowIndex);
-        String syncStatus = syncState.getSyncStatus();
-        if (syncStatus == "new" || syncStatus == "change") {
-          JsonObject contentToUpload =
-              DigitalObjectUtil.rowToJsonObject(row, this.columnMapping, true);
-          try {
-            List<String> jsonPathAsList = new ArrayList<String>();
-            if (syncStatus == "new") {
-              CordraObject newDO = syncProcessor.createDigitalObjectsRecursive(
-                  (JsonElement) contentToUpload, row, jsonPathAsList);
-              UploadToCordraOperation.logger.info("Created new DO: " + newDO.id);
-            } else {
-              CordraObject updatedDO = syncProcessor.updateDigitalObjectsRecursive(
-                  (JsonElement) contentToUpload, row, jsonPathAsList);
-              UploadToCordraOperation.logger.info("Updated new DO: " + updatedDO.id);
+        private JsonNode columnMapping;
+        Map<Integer, SyncState> syncStatusForRows;
+        private String authToken;
+        private String cordraUrl;
+        private boolean uploadingToDiSSCoInfrastructure;
+        Map<Integer, List<String>> colsToModifyAfter;
+
+        public MyRowVisitor(JsonNode columnMapping, Map<Integer, SyncState> syncStatusForRows,
+            String authToken, String cordraUrl, boolean uploadingToDiSSCoInfrastructure) {
+          this.columnMapping = columnMapping;
+          this.syncStatusForRows = syncStatusForRows;
+          this.authToken = authToken;
+          this.cordraUrl = cordraUrl;
+          this.uploadingToDiSSCoInfrastructure = uploadingToDiSSCoInfrastructure;
+
+          List<String> jsonPathAsList = new ArrayList<String>();
+          Map<Integer, List<String>> colsToModifyAfter = new HashMap<Integer, List<String>>();
+          DigitalObjectUtil.setColsToModify(columnMapping, jsonPathAsList, colsToModifyAfter);
+          this.colsToModifyAfter = colsToModifyAfter;
+        }
+
+        @Override
+        public void start(Project project) {
+          ;
+        }
+
+        @Override
+        public boolean visit(Project project, int rowIndex, Row row) {
+          DigitalObjectProcessor syncProcessor;
+          if (uploadingToDiSSCoInfrastructure) {
+            syncProcessor =
+                new DisscoSpecimenProcessor(authToken, this.columnMapping, this.colsToModifyAfter);
+          } else {
+            syncProcessor = new GenericDigitalObjectProcessor(authToken, this.cordraUrl,
+                this.columnMapping, this.colsToModifyAfter);
+          }
+
+          SyncState syncState = this.syncStatusForRows.get(rowIndex);
+          String syncStatus = syncState.getSyncStatus();
+          if (syncStatus == "new" || syncStatus == "change") {
+            JsonObject contentToUpload =
+                DigitalObjectUtil.rowToJsonObject(row, this.columnMapping, true);
+            try {
+              List<String> jsonPathAsList = new ArrayList<String>();
+              if (syncStatus == "new") {
+                CordraObject newDO = syncProcessor.createDigitalObjectsRecursive(
+                    (JsonElement) contentToUpload, row, jsonPathAsList);
+                UploadToCordraOperation.logger.info("Created new DO: " + newDO.id);
+              } else {
+                CordraObject updatedDO = syncProcessor.updateDigitalObjectsRecursive(
+                    (JsonElement) contentToUpload, row, jsonPathAsList);
+                UploadToCordraOperation.logger.info("Updated new DO: " + updatedDO.id);
+              }
+              this.syncStatusForRows.put(rowIndex, new SyncState("synchronized"));
+            } catch (CordraException e) {
+              logger.error("an CordraObjectRepositoryException was thrown!");
+              logger.error(e.getMessage());
+              this.syncStatusForRows.put(rowIndex,
+                  new SyncState("error", "Exception during upload " + e.getMessage()));
+              e.printStackTrace();
             }
-            this.syncStatusForRows.put(rowIndex, new SyncState("synchronized"));
-          } catch (CordraException e) {
-            logger.error("an CordraObjectRepositoryException was thrown!");
-            logger.error(e.getMessage());
-            this.syncStatusForRows.put(rowIndex,
-                new SyncState("error", "Exception during upload " + e.getMessage()));
-            e.printStackTrace();
           }
+          return false;
         }
-        return false;
-      }
 
-      @Override
-      public void end(Project project) {
-        ;
+        @Override
+        public void end(Project project) {
+          ;
+        }
       }
-    }
     }
 
     @Override

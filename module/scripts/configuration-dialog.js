@@ -26,7 +26,8 @@ ConfigurationDialog.launch = function() {
 			"save-connection",
 			{},
 			{
-				cordraServerUrl: elmts.inputDSServer.val(),
+				cordraServerUrl: elmts.inputDOServer.val(),
+				uploadingToDiSSCoInfrastructure: elmts.inputCheckboxDisscoSpecimenUpload.prop("checked"),
 				authServerUrl: elmts.inputAuthServer.val(),
 				authRealm: elmts.inputAuthRealm.val(),
 				authClientId: elmts.inputAuthClientId.val(),
@@ -54,7 +55,11 @@ ConfigurationDialog.launch = function() {
 	if(schema){
 		const cordraServerUrl = schema.cordraServerUrl;
 		if(cordraServerUrl){
-			elmts.inputDSServer.val(cordraServerUrl);
+			elmts.inputDOServer.val(cordraServerUrl);
+		}
+		const uploadingToDiSSCoInfrastructure = schema.uploadingToDiSSCoInfrastructure;
+		if(uploadingToDiSSCoInfrastructure !== undefined){
+			elmts.inputCheckboxDisscoSpecimenUpload.prop("checked", uploadingToDiSSCoInfrastructure);
 		}
 		const authServerUrl = schema.authServerUrl;
 		if(authServerUrl){
@@ -77,7 +82,8 @@ ConfigurationDialog.launch = function() {
 
 
 ConfigurationDialog.setConnectionDefaults = function(elmts){
-	elmts.inputDSServer.val("https://nsidr.org");
+	elmts.inputDOServer.val("https://nsidr.org");
+	elmts.inputCheckboxDisscoSpecimenUpload.prop("checked", true);
 	elmts.inputAuthServer.val("https://login-demo.dissco.eu/auth");
 	elmts.inputAuthRealm.val("SynthesysPlus");
 	elmts.inputAuthClientId.val("cordra");

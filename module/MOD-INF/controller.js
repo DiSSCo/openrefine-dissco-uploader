@@ -41,7 +41,7 @@ var ClientSideResourceManager = Packages.com.google.refine.ClientSideResourceMan
 function init() {
 	// Packages.java.lang.System.err.println(module.getMountPoint());
 	var RefineServlet = Packages.com.google.refine.RefineServlet;
-	RefineServlet.registerCommand(module, "save-connection", new Packages.eu.dissco.refineextension.commands.SaveConnectionCommand());
+	RefineServlet.registerCommand(module, "save-connection", new Packages.eu.dissco.refineextension.commands.SaveConfigurationCommand());
 	RefineServlet.registerCommand(module, "save-schema", new Packages.eu.dissco.refineextension.commands.SaveSchemaCommand());
 	RefineServlet.registerCommand(module, "preview-digital-specimens", new Packages.eu.dissco.refineextension.commands.PreviewDigitalSpecimenCommand());
 	RefineServlet.registerCommand(module, "perform-nsidr-edits", new Packages.eu.dissco.refineextension.commands.PerformNsidrEditsCommand());

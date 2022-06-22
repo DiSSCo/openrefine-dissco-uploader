@@ -14,7 +14,7 @@ import javax.servlet.ServletException;
 
 import eu.dissco.refineextension.schema.CordraUploadSchema;
 
-public class SaveConnectionCommand extends Command {
+public class SaveConfigurationCommand extends Command {
 
   @Override
   public void doPost(HttpServletRequest request, HttpServletResponse response)
@@ -22,7 +22,8 @@ public class SaveConnectionCommand extends Command {
     // To-Do: make csrf token check
     try {
       Project project = getProject(request);
-      String[] requiredKeys = {"cordraServerUrl", "authServerUrl", "authRealm", "authClientId"};
+      String[] requiredKeys = {"cordraServerUrl", "uploadingToDiSSCoInfrastructure",
+          "authServerUrl", "authRealm", "authClientId"};
       for (int i = 0; i < requiredKeys.length; i++) {
         String key = requiredKeys[i];
         String value = request.getParameter(key);
@@ -39,6 +40,7 @@ public class SaveConnectionCommand extends Command {
         schema = new CordraUploadSchema();
       }
       schema.setCordraServerUrl(request.getParameter("cordraServerUrl"));
+      schema.setUploadingToDiSSCoInfrastructure(Boolean.valueOf(request.getParameter("uploadingToDiSSCoInfrastructure")));
       schema.setAuthServerUrl(request.getParameter("authServerUrl"));
       schema.setAuthRealm(request.getParameter("authRealm"));
       schema.setAuthClientId(request.getParameter("authClientId"));
@@ -46,8 +48,8 @@ public class SaveConnectionCommand extends Command {
       int numberOfProcessingThreads = 1;
       try {
         numberOfProcessingThreads = Integer.parseInt(numberOfProcessingThreadsStr);
-      } catch (NumberFormatException e){
-        
+      } catch (NumberFormatException e) {
+
       }
       schema.setNumberOfProcessingThreads(numberOfProcessingThreads);
       project.overlayModels.put(CordraUploadSchema.overlayModelKey, schema);

@@ -25,7 +25,7 @@ import com.google.gson.JsonObject;
 import net.cnri.cordra.api.CordraException;
 import eu.dissco.refineextension.model.SyncResult;
 import eu.dissco.refineextension.model.SyncState;
-import eu.dissco.refineextension.processing.DigitalObjectProcessor;
+import eu.dissco.refineextension.processing.GenericDigitalObjectProcessor;
 import eu.dissco.refineextension.schema.CordraUploadSchema;
 import eu.dissco.refineextension.util.DigitalObjectUtil;
 
@@ -47,7 +47,7 @@ public class PrepareForSynchronizationCommand extends Command {
       CordraUploadSchema savedSchema =
           (CordraUploadSchema) project.overlayModels.get(CordraUploadSchema.overlayModelKey);
       String cordraUrl = savedSchema.getCordraServerUrl();
-      // To-Do check that schema haas ColumnMapping
+      // To-Do check that schema has ColumnMapping
       JsonNode columnMapping = savedSchema.getColumnMapping();
       Map<Integer, SyncState> syncStatusForRows = new HashMap<Integer, SyncState>();
       response.setCharacterEncoding("UTF-8");
@@ -70,13 +70,13 @@ public class PrepareForSynchronizationCommand extends Command {
 
     private JsonNode columnMapping;
     private Map<Integer, SyncState> syncStatusForRows;
-    DigitalObjectProcessor processorClient;
+    GenericDigitalObjectProcessor processorClient;
 
     public MyRowVisitor(JsonNode columnMapping, Map<Integer, SyncState> syncStatusForRows,
         String authToken, String cordraUrl) {
       this.columnMapping = columnMapping;
       this.syncStatusForRows = syncStatusForRows;
-      this.processorClient = new DigitalObjectProcessor(authToken, cordraUrl, this.columnMapping, null);
+      this.processorClient = new GenericDigitalObjectProcessor(authToken, cordraUrl, this.columnMapping, null);
     }
 
     @Override

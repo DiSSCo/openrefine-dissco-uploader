@@ -18,16 +18,19 @@ public class CordraUploadSchema implements OverlayModel {
   public static String overlayModelKey = "cordraUploadSchema";
 
   @JsonProperty("cordraServerUrl")
-  protected String cordraServerUrl;
+  protected String cordraServerUrl = "https://nsidr.org";
+  
+  @JsonProperty("uploadingToDiSSCoInfrastructure")
+  protected boolean uploadingToDiSSCoInfrastructure = true;
 
   @JsonProperty("authServerUrl")
-  protected String authServerUrl;
+  protected String authServerUrl = "https://login-demo.dissco.eu/auth";
 
   @JsonProperty("authRealm")
-  protected String authRealm;
+  protected String authRealm = "dissco";
 
   @JsonProperty("authClientId")
-  protected String authClientId;
+  protected String authClientId = "openrefine";
   
   @JsonProperty("numberOfProcessingThreads")
   protected int numberOfProcessingThreads = 1;
@@ -50,6 +53,7 @@ public class CordraUploadSchema implements OverlayModel {
    */
   @JsonCreator
   public CordraUploadSchema(@JsonProperty("cordraServerUrl") String cordraServerUrl,
+      @JsonProperty("uploadingToDiSSCoInfrastructure") boolean uploadingToDiSSCoInfrastructure,
       @JsonProperty("authServerUrl") String authServerUrl,
       @JsonProperty("authRealm") String authRealm,
       @JsonProperty("authClientId") String authClientId,
@@ -57,6 +61,7 @@ public class CordraUploadSchema implements OverlayModel {
       @JsonProperty("columnMapping") JsonNode columnMapping,
       @JsonProperty("syncStatusForRows") Map<Integer, SyncState> syncStatusForRows) {
     this.cordraServerUrl = cordraServerUrl;
+    this.uploadingToDiSSCoInfrastructure = uploadingToDiSSCoInfrastructure;
     this.authServerUrl = authServerUrl;
     this.authRealm = authRealm;
     this.authClientId = authClientId;
@@ -68,6 +73,11 @@ public class CordraUploadSchema implements OverlayModel {
   @JsonProperty("cordraServerUrl")
   public String getCordraServerUrl() {
     return cordraServerUrl;
+  }
+  
+  @JsonProperty("uploadingToDiSSCoInfrastructure")
+  public boolean getUploadingToDiSSCoInfrastructure() {
+    return uploadingToDiSSCoInfrastructure;
   }
 
   @JsonProperty("authServerUrl")
@@ -92,6 +102,10 @@ public class CordraUploadSchema implements OverlayModel {
 
   public void setCordraServerUrl(String cordraServerUrl) {
     this.cordraServerUrl = cordraServerUrl;
+  }
+  
+  public void setUploadingToDiSSCoInfrastructure(boolean uploadingToDiSSCoInfrastructure) {
+    this.uploadingToDiSSCoInfrastructure = uploadingToDiSSCoInfrastructure;
   }
 
   public void setAuthServerUrl(String authServerUrl) {
