@@ -25,7 +25,8 @@ public class DisscoSpecimenPostClient {
   private String authToken;
 
   public DisscoSpecimenPostClient(String token) {
-    System.out.println("Initializing DisscoSpecimenPostClient with endpoint " + disscoSpecimenPostEndpoint);
+    System.out.println(
+        "Initializing DisscoSpecimenPostClient with endpoint " + disscoSpecimenPostEndpoint);
     this.authToken = token;
   }
 
@@ -39,13 +40,13 @@ public class DisscoSpecimenPostClient {
     enrichmentEntry.addProperty("name", "plant-organ-detection");
     enrichmentEntry.addProperty("imageOnly", true);
     JsonArray enrichment = new JsonArray();
-    //TODO: configure enchrichments via ui
+    // TODO: configure enchrichments via ui
     enrichment.add(enrichmentEntry);
     data.add("enrichment", enrichment);
 
     System.out.println("will sent CloudEvent:");
     System.out.println(data.toString());
-    
+
     CloudEvent ceToSend = new CloudEventBuilder().withId("my-id")
         .withSource(URI.create("https://address-open-refine.dissco.eu"))
         .withType("eu.dissco.translator.event").withDataContentType("application/json")
@@ -75,17 +76,9 @@ public class DisscoSpecimenPostClient {
         String responseBody = scanner.useDelimiter("\\A").next();
         System.out.println(responseBody);
         JsonObject body = JsonParser.parseString(responseBody).getAsJsonObject();
-        JsonArray results = body.getAsJsonArray("results");
-        JsonObject result1 = results.get(0).getAsJsonObject();
-        int response1Code = result1.get("responseCode").getAsInt();
-        if(response1Code == 200) {
-          System.out.println("response success 200!");
-          JsonObject response = result1.getAsJsonObject("response");
-          if (response.has("id") && response.has("type") && response.has("content")) {
-            createdObject = new CordraObject(response.get("type").getAsString(),
-                response.getAsJsonObject("content"));
-            createdObject.id = response.get("id").getAsString();
-          }
+        if (body.has("@id")) {
+          createdObject = new CordraObject(body.get("@type").getAsString(), body);
+          createdObject.id = body.get("@id").getAsString();
         }
       }
     } catch (IOException e) {

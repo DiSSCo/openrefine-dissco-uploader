@@ -57,7 +57,7 @@ SynchronizationDialog.launch = function() {
 	if (!keycloak.token) {
 		keycloak
 			.init({
-				onLoad: initOptions.onLoad,
+				checkLoginIframe: false,
 				messageReceiveTimeout: 2500,
 			})
 			.then((auth) => {
