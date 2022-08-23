@@ -1,4 +1,4 @@
-# openrefine-cordra-uploader
+# openrefine-dissco-uploader
 
 ## Installation
 
@@ -11,16 +11,16 @@ To-Do
 git clone https://github.com/OpenRefine/OpenRefine.git
 # Clone this repo in the extensions folder of OpenRefine:
 cd OpenRefine/extensions/
-git clone https://github.com/DiSSCo/openrefine-cordra-uploader.git
-cd openrefine-cordra-uploader/
+git clone https://github.com/DiSSCo/openrefine-dissco-uploader.git
+cd openrefine-dissco-uploader/
 # Now compile with maven
 mvn compile
 ```
 Afterwards you can run the OpenRefine source installation by `./refine` from the root directory of OpenRefine, or copy the folder with this repo's content to your local OpenRefine [workspace directory](https://docs.openrefine.org/manual/installing#set-where-data-is-stored), so you can use it with a downloaded version of OpenRefine.
 
 ## How to use this extension
-After installation, a menu item "Cordra uploader" should appear in your OpenRefine GUI when editing a project.
-1. Set the url of the Cordra server where you want to upload objects and the auth server url (currently only token-based authentication via an external provider is implemented, preferrably use a keycloak server).
+After installation, a menu item "Digital specimen upload" should appear in your OpenRefine GUI when editing a project.
+1. Set the url of the DiSSCo specimen server where you want to upload objects and the auth server url (currently only token-based authentication via an external provider is implemented, preferrably use a keycloak server).
 2. Edit the schema mapping: here you create the json-like structure of the DigitalObject to create and map every attribute to a column of your data (alternatively set default values). Every row must correspond to one Digital Object. However, nested DOs are also supported, if some attributes should be stored in another DO, which is then referenced by the target DO corresponding to one row.
 3. Use the synchronization dialog to upload your data.
 

@@ -17,7 +17,7 @@ import javax.servlet.ServletException;
 import com.google.refine.util.ParsingUtilities;
 
 import eu.dissco.refineextension.model.SyncState;
-import eu.dissco.refineextension.schema.CordraUploadSchema;
+import eu.dissco.refineextension.schema.DisscoUploadSchema;
 
 public class SaveSchemaCommand extends Command {
 
@@ -50,15 +50,15 @@ public class SaveSchemaCommand extends Command {
             "{ \"code\" : \"error\", \"message\" : \"The doi column index must be an integer\" }");
         return;
       }
-      CordraUploadSchema schema =
-          (CordraUploadSchema) project.overlayModels.get(CordraUploadSchema.overlayModelKey);
+      DisscoUploadSchema schema =
+          (DisscoUploadSchema) project.overlayModels.get(DisscoUploadSchema.overlayModelKey);
       if (schema == null) {
-        schema = new CordraUploadSchema();
+        schema = new DisscoUploadSchema();
       }
       Map<Integer, SyncState> syncStatusForRows = new HashMap<Integer, SyncState>();
       schema.setSyncStatusForRows(syncStatusForRows);
       schema.setColumnMapping(columnMapping);
-      project.overlayModels.put(CordraUploadSchema.overlayModelKey, schema);
+      project.overlayModels.put(DisscoUploadSchema.overlayModelKey, schema);
 
       response.setCharacterEncoding("UTF-8");
       response.setHeader("Content-Type", "application/json");

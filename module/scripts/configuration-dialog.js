@@ -1,7 +1,7 @@
 const ConfigurationDialog = {};
 
 ConfigurationDialog.launch = function() {
-	const frame = $(DOM.loadHTML("cordra-uploader", "scripts/dialogs/configuration-dialog.html"));
+	const frame = $(DOM.loadHTML("dissco-uploader", "scripts/dialogs/configuration-dialog.html"));
 	const elmts = this.elmts = DOM.bind(frame);
 
 	const level = DialogSystem.showDialog(frame);
@@ -15,19 +15,18 @@ ConfigurationDialog.launch = function() {
 	elmts.resetButton.click(function() {
 		ConfigurationDialog.setConnectionDefaults(elmts);
 	});
-	
+
 	elmts.saveButton.click(function() {
 		let numberOfProcessingThreads = parseInt(elmts.numberOfProcessingThreads.val());
 		if(isNaN(numberOfProcessingThreads)) {
 			numberOfProcessingThreads = 1;
 		}
 		Refine.postProcess(
-			"cordra-uploader",
+			"dissco-uploader",
 			"save-connection",
 			{},
 			{
-				cordraServerUrl: elmts.inputDOServer.val(),
-				uploadingToDiSSCoInfrastructure: elmts.inputCheckboxDisscoSpecimenUpload.prop("checked"),
+				specimenServerUrl: elmts.inputDOServer.val(),
 				authServerUrl: elmts.inputAuthServer.val(),
 				authRealm: elmts.inputAuthRealm.val(),
 				authClientId: elmts.inputAuthClientId.val(),
@@ -49,17 +48,13 @@ ConfigurationDialog.launch = function() {
 				}
 			})
 	});
-	
+
 	ConfigurationDialog.setConnectionDefaults(elmts);
-	const schema = theProject.overlayModels.cordraUploadSchema;
+	const schema = theProject.overlayModels.disscoUploadSchema;
 	if(schema){
-		const cordraServerUrl = schema.cordraServerUrl;
-		if(cordraServerUrl){
-			elmts.inputDOServer.val(cordraServerUrl);
-		}
-		const uploadingToDiSSCoInfrastructure = schema.uploadingToDiSSCoInfrastructure;
-		if(uploadingToDiSSCoInfrastructure !== undefined){
-			elmts.inputCheckboxDisscoSpecimenUpload.prop("checked", uploadingToDiSSCoInfrastructure);
+		const disscoServerUrl = schema.disscoServerUrl;
+		if(disscoServerUrl){
+			elmts.inputDOServer.val(disscoServerUrl);
 		}
 		const authServerUrl = schema.authServerUrl;
 		if(authServerUrl){
@@ -82,9 +77,8 @@ ConfigurationDialog.launch = function() {
 
 
 ConfigurationDialog.setConnectionDefaults = function(elmts){
-	elmts.inputDOServer.val("https://nsidr.org");
-	elmts.inputCheckboxDisscoSpecimenUpload.prop("checked", true);
+	elmts.inputDOServer.val("https://sandbox.dissco.tech/api/v1/specimen");
 	elmts.inputAuthServer.val("https://login-demo.dissco.eu/auth");
-	elmts.inputAuthRealm.val("SynthesysPlus");
-	elmts.inputAuthClientId.val("cordra");
+	elmts.inputAuthRealm.val("dissco");
+	elmts.inputAuthClientId.val("openrefine-demo");
 }

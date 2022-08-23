@@ -39,15 +39,15 @@ SynchronizationDialog._updateTableRowsWithSyncStates = function() {
 }
 
 SynchronizationDialog.launch = function() {
-	const cordraUploadSchema = theProject.overlayModels.cordraUploadSchema;
-	if(cordraUploadSchema === undefined ){
-		alert("You must check and save the configuration of the Cordra plugin once before you can begin.");
+	const disscoUploadSchema = theProject.overlayModels.disscoUploadSchema;
+	if(disscoUploadSchema === undefined ){
+		alert("You must check and save the configuration of the dissco uploader plugin once before you can begin.");
 		return;
 	}
 	const initOptions = {
-		url: (cordraUploadSchema && cordraUploadSchema.authServerUrl) ?? "",
-		realm: (cordraUploadSchema && cordraUploadSchema.authRealm) ?? "",
-		clientId: (cordraUploadSchema && cordraUploadSchema.authClientId) ?? "",
+		url: (disscoUploadSchema && disscoUploadSchema.authServerUrl) ?? "",
+		realm: (disscoUploadSchema && disscoUploadSchema.authRealm) ?? "",
+		clientId: (disscoUploadSchema && disscoUploadSchema.authClientId) ?? "",
 	};
 
 	if (!keycloak || !keycloak.authenticated) {
@@ -65,7 +65,7 @@ SynchronizationDialog.launch = function() {
 				SynchronizationDialog.initWithAuthInfo(auth)
 			})
 			.catch(e => {
-				statusOperationalText = `Failed to contact authentication server. Make sure that the configured url ${cordraUploadSchema.authServerUrl} and parameters are correct or contact the server administrator`;
+				statusOperationalText = `Failed to contact authentication server. Make sure that the configured url ${disscoUploadSchema.authServerUrl} and parameters are correct or contact the server administrator`;
 				SynchronizationDialog.initWithAuthInfo(keycloak.authenticated);
 			})
 	} else {
@@ -84,7 +84,7 @@ SynchronizationDialog.initWithAuthInfo = function(isAuthenticated) {
 					if (refreshed) {
 						console.log(
 							'Token refreshed' + refreshed,
-							'will update $cordraClient with new token:',
+							'will update client with new token:',
 							keycloak.token
 						);
 					} else {
@@ -97,7 +97,7 @@ SynchronizationDialog.initWithAuthInfo = function(isAuthenticated) {
 		}, 20000); // intervall every 20 seconds
 	}
 
-	const frame = $(DOM.loadHTML("cordra-uploader", "scripts/dialogs/synchronization-dialog.html"));
+	const frame = $(DOM.loadHTML("dissco-uploader", "scripts/dialogs/synchronization-dialog.html"));
 	const elmts = this.elmts = DOM.bind(frame);
 
 	if (keycloak.authenticated) {
@@ -118,10 +118,10 @@ SynchronizationDialog.initWithAuthInfo = function(isAuthenticated) {
 
 	const level = DialogSystem.showDialog(frame);
 
-	const schema = theProject.overlayModels.cordraUploadSchema
+	const schema = theProject.overlayModels.disscoUploadSchema
 	if (schema && schema.columnMapping) {
 		Refine.postProcess(
-			"cordra-uploader",
+			"dissco-uploader",
 			"preview-digital-specimens",
 			{},
 			{
@@ -148,7 +148,7 @@ SynchronizationDialog.initWithAuthInfo = function(isAuthenticated) {
 
 	elmts.preSyncButton.click(function() {
 		Refine.postProcess(
-			"cordra-uploader",
+			"dissco-uploader",
 			"prepare-for-synchronization",
 			{},
 			{
@@ -196,8 +196,8 @@ SynchronizationDialog.initWithAuthInfo = function(isAuthenticated) {
 
 	elmts.syncButton.click(function() {
 		Refine.postProcess(
-			"cordra-uploader",
-			"perform-nsidr-edits",
+			"dissco-uploader",
+			"perform-edits",
 			{},
 			{
 				token: keycloak.token
@@ -208,7 +208,7 @@ SynchronizationDialog.initWithAuthInfo = function(isAuthenticated) {
 					// this callback does not receive the data
 
 					Refine.postProcess(
-						"cordra-uploader",
+						"dissco-uploader",
 						"fetch-synchronization-status",
 						{
 							start: theProject.rowModel.start,
@@ -242,7 +242,7 @@ SynchronizationDialog.initWithAuthInfo = function(isAuthenticated) {
 					);
 				},
 				onError: function(e) {
-					console.log("perform-nsidr-edits on error", e);
+					console.log("perform-edits on error", e);
 				},
 			}
 		);
@@ -251,7 +251,7 @@ SynchronizationDialog.initWithAuthInfo = function(isAuthenticated) {
 
 
 SynchronizationDialog.showError = function(e) {
-	const frame = $(DOM.loadHTML("cordra-uploader", "scripts/dialogs/synchronization-dialog.html"));
+	const frame = $(DOM.loadHTML("dissco-uploader", "scripts/dialogs/synchronization-dialog.html"));
 	const elmts = this.elmts = DOM.bind(frame);
 	const level = DialogSystem.showDialog(frame);
 	elmts.synchronizationInfoText.text("Error: Could not connect to the authentication server. Please check and save the auth server url and try again");

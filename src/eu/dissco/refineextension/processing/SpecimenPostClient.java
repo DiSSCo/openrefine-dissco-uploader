@@ -10,6 +10,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 import java.util.Scanner;
+import org.apache.http.impl.client.CloseableHttpClient;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
@@ -17,20 +18,20 @@ import io.cloudevents.CloudEvent;
 import io.cloudevents.core.message.MessageWriter;
 import io.cloudevents.core.v1.CloudEventBuilder;
 import io.cloudevents.http.HttpMessageFactory;
-import net.cnri.cordra.api.CordraException;
-import net.cnri.cordra.api.CordraObject;
 
-public class DisscoSpecimenPostClient {
+import eu.dissco.refineextension.schema.DigitalObject;
+
+public class SpecimenPostClient {
   protected String disscoSpecimenPostEndpoint = "https://sandbox.dissco.tech/opends";
   private String authToken;
 
-  public DisscoSpecimenPostClient(String token) {
+  public SpecimenPostClient(String token) {
     System.out.println(
         "Initializing DisscoSpecimenPostClient with endpoint " + disscoSpecimenPostEndpoint);
     this.authToken = token;
   }
 
-  public CordraObject create(JsonObject newObject) {
+  public DigitalObject create(JsonObject newObject) {
     System.out.println("create with endpoint " + disscoSpecimenPostEndpoint);
     System.out.println("create was called with token: " + this.authToken);
 
@@ -52,7 +53,7 @@ public class DisscoSpecimenPostClient {
         .withType("eu.dissco.translator.event").withDataContentType("application/json")
         .withData(data.toString().getBytes(StandardCharsets.UTF_8)).build();
 
-    CordraObject createdObject = null;
+    DigitalObject createdObject = null;
 
     try {
       URL url = new URL(this.disscoSpecimenPostEndpoint);
@@ -69,15 +70,16 @@ public class DisscoSpecimenPostClient {
 
       // read the returned message
       Map<String, List<String>> headers = httpUrlConnection.getHeaderFields();
-      System.out.println("header fields returned: ");
+      System.out.println("header fields returned: ");   
       System.out.println(headers.toString());
 
       try (Scanner scanner = new Scanner(httpUrlConnection.getInputStream())) {
-        String responseBody = scanner.useDelimiter("\\A").next();
+        //String responseBody = scanner.useDelimiter("\\A").next();
+        String responseBody = scanner.next();
         System.out.println(responseBody);
         JsonObject body = JsonParser.parseString(responseBody).getAsJsonObject();
         if (body.has("@id")) {
-          createdObject = new CordraObject(body.get("@type").getAsString(), body);
+          createdObject = new DigitalObject(body.get("@type").getAsString(), body);
           createdObject.id = body.get("@id").getAsString();
         }
       }
@@ -106,4 +108,5 @@ public class DisscoSpecimenPostClient {
       }
     });
   }
+
 }

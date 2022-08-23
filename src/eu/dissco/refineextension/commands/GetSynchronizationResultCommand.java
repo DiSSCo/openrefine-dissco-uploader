@@ -26,7 +26,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.ServletException;
 import eu.dissco.refineextension.model.SyncState;
-import eu.dissco.refineextension.schema.CordraUploadSchema;
+import eu.dissco.refineextension.schema.DisscoUploadSchema;
 
 
 public class GetSynchronizationResultCommand extends Command {
@@ -76,8 +76,8 @@ public class GetSynchronizationResultCommand extends Command {
 
       Pool pool = new Pool();
 
-      CordraUploadSchema savedSchema =
-          (CordraUploadSchema) project.overlayModels.get(CordraUploadSchema.overlayModelKey);
+      DisscoUploadSchema savedSchema =
+          (DisscoUploadSchema) project.overlayModels.get(DisscoUploadSchema.overlayModelKey);
       Map<Integer, SyncState> syncStatusForAllRows = savedSchema.getSyncStatusForRows();
 
       response.setCharacterEncoding("UTF-8");

@@ -13,15 +13,12 @@ import com.fasterxml.jackson.databind.JsonNode;
 import eu.dissco.refineextension.model.SyncState;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class CordraUploadSchema implements OverlayModel {
-  
-  public static String overlayModelKey = "cordraUploadSchema";
+public class DisscoUploadSchema implements OverlayModel {
 
-  @JsonProperty("cordraServerUrl")
-  protected String cordraServerUrl = "https://nsidr.org";
-  
-  @JsonProperty("uploadingToDiSSCoInfrastructure")
-  protected boolean uploadingToDiSSCoInfrastructure = true;
+  public static String overlayModelKey = "disscoUploadSchema";
+
+  @JsonProperty("specimenServerUrl")
+  protected String specimenServerUrl = "https://sandbox.dissco.tech/api/v1/specimen";
 
   @JsonProperty("authServerUrl")
   protected String authServerUrl = "https://login-demo.dissco.eu/auth";
@@ -31,7 +28,7 @@ public class CordraUploadSchema implements OverlayModel {
 
   @JsonProperty("authClientId")
   protected String authClientId = "openrefine";
-  
+
   @JsonProperty("numberOfProcessingThreads")
   protected int numberOfProcessingThreads = 1;
 
@@ -44,7 +41,7 @@ public class CordraUploadSchema implements OverlayModel {
   /**
    * Constructor.
    */
-  public CordraUploadSchema() {
+  public DisscoUploadSchema() {
 
   }
 
@@ -52,16 +49,14 @@ public class CordraUploadSchema implements OverlayModel {
    * Constructor for deserialization via Jackson
    */
   @JsonCreator
-  public CordraUploadSchema(@JsonProperty("cordraServerUrl") String cordraServerUrl,
-      @JsonProperty("uploadingToDiSSCoInfrastructure") boolean uploadingToDiSSCoInfrastructure,
+  public DisscoUploadSchema(@JsonProperty("specimenServerUrl") String specimenServerUrl,
       @JsonProperty("authServerUrl") String authServerUrl,
       @JsonProperty("authRealm") String authRealm,
       @JsonProperty("authClientId") String authClientId,
       @JsonProperty("numberOfProcessingThreads") int numberOfProcessingThreads,
       @JsonProperty("columnMapping") JsonNode columnMapping,
       @JsonProperty("syncStatusForRows") Map<Integer, SyncState> syncStatusForRows) {
-    this.cordraServerUrl = cordraServerUrl;
-    this.uploadingToDiSSCoInfrastructure = uploadingToDiSSCoInfrastructure;
+    this.specimenServerUrl = specimenServerUrl;
     this.authServerUrl = authServerUrl;
     this.authRealm = authRealm;
     this.authClientId = authClientId;
@@ -70,15 +65,11 @@ public class CordraUploadSchema implements OverlayModel {
     this.numberOfProcessingThreads = numberOfProcessingThreads;
   }
 
-  @JsonProperty("cordraServerUrl")
-  public String getCordraServerUrl() {
-    return cordraServerUrl;
+  @JsonProperty("specimenServerUrl")
+  public String getSpecimenServerUrl() {
+    return specimenServerUrl;
   }
-  
-  @JsonProperty("uploadingToDiSSCoInfrastructure")
-  public boolean getUploadingToDiSSCoInfrastructure() {
-    return uploadingToDiSSCoInfrastructure;
-  }
+
 
   @JsonProperty("authServerUrl")
   public String getAuthServerUrl() {
@@ -89,7 +80,7 @@ public class CordraUploadSchema implements OverlayModel {
   public JsonNode getColumnMapping() {
     return columnMapping;
   }
-  
+
   @JsonProperty("numberOfProcessingThreads")
   public int getNumberOfProcessingThreads() {
     return this.numberOfProcessingThreads;
@@ -100,12 +91,8 @@ public class CordraUploadSchema implements OverlayModel {
     return syncStatusForRows;
   }
 
-  public void setCordraServerUrl(String cordraServerUrl) {
-    this.cordraServerUrl = cordraServerUrl;
-  }
-  
-  public void setUploadingToDiSSCoInfrastructure(boolean uploadingToDiSSCoInfrastructure) {
-    this.uploadingToDiSSCoInfrastructure = uploadingToDiSSCoInfrastructure;
+  public void setSpecimenServerUrl(String specimenServerUrl) {
+    this.specimenServerUrl = specimenServerUrl;
   }
 
   public void setAuthServerUrl(String authServerUrl) {
@@ -119,7 +106,7 @@ public class CordraUploadSchema implements OverlayModel {
   public void setAuthClientId(String authClientId) {
     this.authClientId = authClientId;
   }
-  
+
   public void setNumberOfProcessingThreads(int numberOfProcessingThreads) {
     this.numberOfProcessingThreads = numberOfProcessingThreads;
   }

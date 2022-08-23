@@ -22,11 +22,10 @@ import javax.servlet.ServletException;
 
 import com.google.gson.JsonObject;
 
-import net.cnri.cordra.api.CordraException;
 import eu.dissco.refineextension.model.SyncResult;
 import eu.dissco.refineextension.model.SyncState;
-import eu.dissco.refineextension.processing.GenericDigitalObjectProcessor;
-import eu.dissco.refineextension.schema.CordraUploadSchema;
+import eu.dissco.refineextension.processing.SpecimenProcessor;
+import eu.dissco.refineextension.schema.DisscoUploadSchema;
 import eu.dissco.refineextension.util.DigitalObjectUtil;
 
 public class PrepareForSynchronizationCommand extends Command {
@@ -44,20 +43,21 @@ public class PrepareForSynchronizationCommand extends Command {
       }
       Project project = getProject(request);
       Engine engine = getEngine(request, project);
-      CordraUploadSchema savedSchema =
-          (CordraUploadSchema) project.overlayModels.get(CordraUploadSchema.overlayModelKey);
-      String cordraUrl = savedSchema.getCordraServerUrl();
+      DisscoUploadSchema savedSchema =
+          (DisscoUploadSchema) project.overlayModels.get(DisscoUploadSchema.overlayModelKey);
+      String specimenUrl = savedSchema.getSpecimenServerUrl();
       // To-Do check that schema has ColumnMapping
       JsonNode columnMapping = savedSchema.getColumnMapping();
       Map<Integer, SyncState> syncStatusForRows = new HashMap<Integer, SyncState>();
       response.setCharacterEncoding("UTF-8");
       response.setHeader("Content-Type", "application/json");
       FilteredRows filteredRows = engine.getAllFilteredRows();
-      filteredRows.accept(project, new MyRowVisitor(columnMapping, syncStatusForRows, authToken, cordraUrl));
+      filteredRows.accept(project,
+          new MyRowVisitor(columnMapping, syncStatusForRows, authToken, specimenUrl));
 
       // preserve the pre-sync results for the synchronization command
       savedSchema.setSyncStatusForRows(syncStatusForRows);
-      project.overlayModels.put(CordraUploadSchema.overlayModelKey, savedSchema);
+      project.overlayModels.put(DisscoUploadSchema.overlayModelKey, savedSchema);
 
       respondJSON(response, new SyncResult(syncStatusForRows));
     } catch (Exception e) {
@@ -70,13 +70,13 @@ public class PrepareForSynchronizationCommand extends Command {
 
     private JsonNode columnMapping;
     private Map<Integer, SyncState> syncStatusForRows;
-    GenericDigitalObjectProcessor processorClient;
+    SpecimenProcessor processorClient;
 
     public MyRowVisitor(JsonNode columnMapping, Map<Integer, SyncState> syncStatusForRows,
-        String authToken, String cordraUrl) {
+        String authToken, String specimenUrl) {
       this.columnMapping = columnMapping;
       this.syncStatusForRows = syncStatusForRows;
-      this.processorClient = new GenericDigitalObjectProcessor(authToken, cordraUrl, this.columnMapping, null);
+      this.processorClient = new SpecimenProcessor(authToken, this.columnMapping, null, specimenUrl);
     }
 
     @Override
@@ -95,25 +95,30 @@ public class PrepareForSynchronizationCommand extends Command {
       // upon schema saving ???
       int idColIndex = idColIndexNode.asInt();
       id = (String) row.getCellValue(idColIndex);
-      digitalObjectContent = processorClient.getDeserializedDigitalObjectContent(id);
-      if (digitalObjectContent != null) {
-        JsonObject doContentToUpload =
-            DigitalObjectUtil.rowToJsonObject(row, this.columnMapping, false);
-        JsonNode differencesPatch = null;
-        try {
-          differencesPatch =
-              processorClient.getDigitalObjectDataDiff(digitalObjectContent, doContentToUpload);
-        } catch (IOException | CordraException e) {
-          logger.error("json processing exception!");
-          e.printStackTrace();
-          rowSyncState = new SyncState("error",
-              "Failure during comparison of the local data with the remote Digital Specimen to update. See logs.");
-        }
-        if (differencesPatch != null && differencesPatch.size() > 0) {
-          // JSONs are not equal, Object will be updated
-          rowSyncState = new SyncState("change", "", differencesPatch);
+      if (id != null && !id.equals("null") && id.length() > 0) {
+        // digitalObjectContent = processorClient.getDeserializedDigitalObjectContent(id);
+        digitalObjectContent = processorClient.getSpecimen(id).content.getAsJsonObject();
+        if (digitalObjectContent != null) {
+          JsonObject doContentToUpload =
+              DigitalObjectUtil.rowToJsonObject(row, this.columnMapping, false);
+          JsonNode differencesPatch = null;
+          try {
+            differencesPatch =
+                processorClient.getDigitalObjectDataDiff(digitalObjectContent, doContentToUpload);
+          } catch (IOException e) {
+            logger.error("json processing exception!");
+            e.printStackTrace();
+            rowSyncState = new SyncState("error",
+                "Failure during comparison of the local data with the remote Digital Specimen to update. See logs.");
+          }
+          if (differencesPatch != null && differencesPatch.size() > 0) {
+            // JSONs are not equal, Object will be updated
+            rowSyncState = new SyncState("change", "", differencesPatch);
+          } else {
+            rowSyncState = new SyncState("synchronized");
+          }
         } else {
-          rowSyncState = new SyncState("synchronized");
+          rowSyncState = new SyncState("new");
         }
       } else {
         rowSyncState = new SyncState("new");

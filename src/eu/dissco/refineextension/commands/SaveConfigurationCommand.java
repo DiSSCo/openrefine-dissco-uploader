@@ -12,7 +12,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.ServletException;
 
-import eu.dissco.refineextension.schema.CordraUploadSchema;
+import eu.dissco.refineextension.schema.DisscoUploadSchema;
 
 public class SaveConfigurationCommand extends Command {
 
@@ -22,8 +22,8 @@ public class SaveConfigurationCommand extends Command {
     // To-Do: make csrf token check
     try {
       Project project = getProject(request);
-      String[] requiredKeys = {"cordraServerUrl", "uploadingToDiSSCoInfrastructure",
-          "authServerUrl", "authRealm", "authClientId"};
+      String[] requiredKeys =
+          {"specimenServerUrl", "authServerUrl", "authRealm", "authClientId"};
       for (int i = 0; i < requiredKeys.length; i++) {
         String key = requiredKeys[i];
         String value = request.getParameter(key);
@@ -34,13 +34,12 @@ public class SaveConfigurationCommand extends Command {
         }
       }
 
-      CordraUploadSchema schema =
-          (CordraUploadSchema) project.overlayModels.get(CordraUploadSchema.overlayModelKey);
+      DisscoUploadSchema schema =
+          (DisscoUploadSchema) project.overlayModels.get(DisscoUploadSchema.overlayModelKey);
       if (schema == null) {
-        schema = new CordraUploadSchema();
+        schema = new DisscoUploadSchema();
       }
-      schema.setCordraServerUrl(request.getParameter("cordraServerUrl"));
-      schema.setUploadingToDiSSCoInfrastructure(Boolean.valueOf(request.getParameter("uploadingToDiSSCoInfrastructure")));
+      schema.setSpecimenServerUrl(request.getParameter("specimenServerUrl"));
       schema.setAuthServerUrl(request.getParameter("authServerUrl"));
       schema.setAuthRealm(request.getParameter("authRealm"));
       schema.setAuthClientId(request.getParameter("authClientId"));
@@ -52,7 +51,7 @@ public class SaveConfigurationCommand extends Command {
 
       }
       schema.setNumberOfProcessingThreads(numberOfProcessingThreads);
-      project.overlayModels.put(CordraUploadSchema.overlayModelKey, schema);
+      project.overlayModels.put(DisscoUploadSchema.overlayModelKey, schema);
 
       response.setCharacterEncoding("UTF-8");
       response.setHeader("Content-Type", "application/json");

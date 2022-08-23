@@ -44,7 +44,7 @@ function init() {
 	RefineServlet.registerCommand(module, "save-connection", new Packages.eu.dissco.refineextension.commands.SaveConfigurationCommand());
 	RefineServlet.registerCommand(module, "save-schema", new Packages.eu.dissco.refineextension.commands.SaveSchemaCommand());
 	RefineServlet.registerCommand(module, "preview-digital-specimens", new Packages.eu.dissco.refineextension.commands.PreviewDigitalSpecimenCommand());
-	RefineServlet.registerCommand(module, "perform-nsidr-edits", new Packages.eu.dissco.refineextension.commands.PerformNsidrEditsCommand());
+	RefineServlet.registerCommand(module, "perform-edits", new Packages.eu.dissco.refineextension.commands.PerformEditsCommand());
 	RefineServlet.registerCommand(module, "prepare-for-synchronization", new Packages.eu.dissco.refineextension.commands.PrepareForSynchronizationCommand());
 	RefineServlet.registerCommand(module, "fetch-synchronization-status", new Packages.eu.dissco.refineextension.commands.GetSynchronizationResultCommand());
 	// Script files to inject into /project page
@@ -56,7 +56,7 @@ function init() {
 			"scripts/project-injection.js",
 			"scripts/menu-bar-extension.js",
 			"scripts/configuration-dialog.js",
-			"scripts/cordra-schema-alignment-dialog.js",
+			"scripts/schema-alignment-dialog.js",
 			"scripts/synchronization-dialog.js",
 		]
 	);
@@ -70,7 +70,7 @@ function init() {
 		]
 	);
 
-	Packages.com.google.refine.model.Project.registerOverlayModel("cordraUploadSchema", Packages.eu.dissco.refineextension.schema.CordraUploadSchema);
+	Packages.com.google.refine.model.Project.registerOverlayModel("disscoUploadSchema", Packages.eu.dissco.refineextension.schema.DisscoUploadSchema);
 }
 
 /*

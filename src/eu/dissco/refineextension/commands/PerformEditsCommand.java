@@ -10,8 +10,8 @@ import com.google.refine.commands.EngineDependentCommand;
 
 import javax.servlet.http.HttpServletRequest;
 
-import eu.dissco.refineextension.operations.UploadToCordraOperation;
-public class PerformNsidrEditsCommand extends EngineDependentCommand {
+import eu.dissco.refineextension.operations.UploadOperation;
+public class PerformEditsCommand extends EngineDependentCommand {
   
   @Override
   protected AbstractOperation createOperation(Project project, HttpServletRequest request, EngineConfig engineConfig)
@@ -24,6 +24,6 @@ public class PerformNsidrEditsCommand extends EngineDependentCommand {
       return;
     }*/
     
-  return new UploadToCordraOperation(engineConfig, project, authToken);
+  return new UploadOperation(engineConfig, project, authToken);
   }
 }

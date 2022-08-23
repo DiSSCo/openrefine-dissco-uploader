@@ -24,27 +24,25 @@ import com.google.refine.process.Process;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import eu.dissco.refineextension.model.SyncState;
-import eu.dissco.refineextension.processing.DigitalObjectProcessor;
-import eu.dissco.refineextension.processing.DisscoSpecimenProcessor;
-import eu.dissco.refineextension.processing.GenericDigitalObjectProcessor;
-import eu.dissco.refineextension.schema.CordraUploadSchema;
+import eu.dissco.refineextension.processing.SpecimenProcessor;
+import eu.dissco.refineextension.schema.DisscoUploadSchema;
 import eu.dissco.refineextension.util.DigitalObjectUtil;
-import net.cnri.cordra.api.CordraException;
-import net.cnri.cordra.api.CordraObject;
 
-public class UploadToCordraOperation extends EngineDependentOperation {
-  static final Logger logger = LoggerFactory.getLogger(UploadToCordraOperation.class);
+import eu.dissco.refineextension.schema.DigitalObject;
+
+public class UploadOperation extends EngineDependentOperation {
+  static final Logger logger = LoggerFactory.getLogger(UploadOperation.class);
 
   private String authToken;
 
-  public UploadToCordraOperation(EngineConfig engineConfig, Project project, String authToken) {
+  public UploadOperation(EngineConfig engineConfig, Project project, String authToken) {
     super(engineConfig);
     this.authToken = authToken;
   }
 
   @Override
   protected String getBriefDescription(Project project) {
-    return "Uploading data to Cordra edits";
+    return "Uploading data to DiSSCo";
   }
 
   @Override
@@ -73,10 +71,9 @@ public class UploadToCordraOperation extends EngineDependentOperation {
 
     @Override
     public void run() {
-      CordraUploadSchema savedSchema =
-          (CordraUploadSchema) _project.overlayModels.get(CordraUploadSchema.overlayModelKey);
-      String cordraUrl = savedSchema.getCordraServerUrl();
-      boolean uploadingToDiSSCoInfrastructure = savedSchema.getUploadingToDiSSCoInfrastructure();
+      DisscoUploadSchema savedSchema =
+          (DisscoUploadSchema) _project.overlayModels.get(DisscoUploadSchema.overlayModelKey);
+      String specimenUrl = savedSchema.getSpecimenServerUrl();
       Map<Integer, SyncState> syncStatusForRows = savedSchema.getSyncStatusForRows();
       JsonNode columnMapping = savedSchema.getColumnMapping();
       int maximumThreadsNum = savedSchema.getNumberOfProcessingThreads();
@@ -101,7 +98,7 @@ public class UploadToCordraOperation extends EngineDependentOperation {
               endRow = rowsSize;
             }
             ThreadUploadClass tnew = new ThreadUploadClass(columnMapping, syncStatusForRows,
-                _authToken, cordraUrl, uploadingToDiSSCoInfrastructure, facets);
+                _authToken, specimenUrl, facets);
             tnew.setStartEndRows(processedBatched, endRow);
             tnew.start();
             threads[i] = tnew;
@@ -114,7 +111,7 @@ public class UploadToCordraOperation extends EngineDependentOperation {
       _progress = 100;
 
       if (!_canceled) {
-        UploadToCordraOperation.logger.info("process is finished");
+        UploadOperation.logger.info("process is finished");
 
         _project.processManager.onDoneProcess(this);
       }
@@ -127,8 +124,7 @@ public class UploadToCordraOperation extends EngineDependentOperation {
       JsonNode columnMapping;
       Map<Integer, SyncState> syncStatusForRows;
       String authToken;
-      String cordraUrl;
-      boolean uploadingToDiSSCoInfrastructure;
+      String specimenUrl;
       List<Facet> _facets;
 
       void setStartEndRows(int startRow, int endRow) {
@@ -137,21 +133,19 @@ public class UploadToCordraOperation extends EngineDependentOperation {
       }
 
       protected ThreadUploadClass(JsonNode columnMapping, Map<Integer, SyncState> syncStatusForRows,
-          String authToken, String cordraUrl, boolean uploadingToDiSSCoInfrastructure,
-          List<Facet> facets) {
+          String authToken, String specimenUrl, List<Facet> facets) {
         this.columnMapping = columnMapping;
         this.syncStatusForRows = syncStatusForRows;
         this.authToken = authToken;
-        this.cordraUrl = cordraUrl;
-        this.uploadingToDiSSCoInfrastructure = uploadingToDiSSCoInfrastructure;
+        this.specimenUrl = specimenUrl;
         this._facets = facets;
       }
 
       @Override
       public void run() {
         MyConjunctiveFilteredRows filteredRows = createFilteredRows(_facets, _startRow, _endRow);
-        filteredRows.accept(_project, new MyRowVisitor(columnMapping, syncStatusForRows, authToken,
-            cordraUrl, uploadingToDiSSCoInfrastructure));
+        filteredRows.accept(_project,
+            new MyRowVisitor(columnMapping, syncStatusForRows, authToken, specimenUrl));
       }
 
       private class MyConjunctiveFilteredRows extends ConjunctiveFilteredRows {
@@ -199,17 +193,15 @@ public class UploadToCordraOperation extends EngineDependentOperation {
         private JsonNode columnMapping;
         Map<Integer, SyncState> syncStatusForRows;
         private String authToken;
-        private String cordraUrl;
-        private boolean uploadingToDiSSCoInfrastructure;
         Map<Integer, List<String>> colsToModifyAfter;
+        private String specimenUrl;
 
         public MyRowVisitor(JsonNode columnMapping, Map<Integer, SyncState> syncStatusForRows,
-            String authToken, String cordraUrl, boolean uploadingToDiSSCoInfrastructure) {
+            String authToken, String specimenUrl) {
           this.columnMapping = columnMapping;
           this.syncStatusForRows = syncStatusForRows;
           this.authToken = authToken;
-          this.cordraUrl = cordraUrl;
-          this.uploadingToDiSSCoInfrastructure = uploadingToDiSSCoInfrastructure;
+          this.specimenUrl = specimenUrl;
 
           List<String> jsonPathAsList = new ArrayList<String>();
           Map<Integer, List<String>> colsToModifyAfter = new HashMap<Integer, List<String>>();
@@ -224,14 +216,9 @@ public class UploadToCordraOperation extends EngineDependentOperation {
 
         @Override
         public boolean visit(Project project, int rowIndex, Row row) {
-          DigitalObjectProcessor syncProcessor;
-          if (uploadingToDiSSCoInfrastructure) {
-            syncProcessor =
-                new DisscoSpecimenProcessor(authToken, this.columnMapping, this.colsToModifyAfter);
-          } else {
-            syncProcessor = new GenericDigitalObjectProcessor(authToken, this.cordraUrl,
-                this.columnMapping, this.colsToModifyAfter);
-          }
+          SpecimenProcessor syncProcessor = new SpecimenProcessor(authToken, this.columnMapping,
+              this.colsToModifyAfter, this.specimenUrl);
+
 
           SyncState syncState = this.syncStatusForRows.get(rowIndex);
           String syncStatus = syncState.getSyncStatus();
@@ -241,17 +228,17 @@ public class UploadToCordraOperation extends EngineDependentOperation {
             try {
               List<String> jsonPathAsList = new ArrayList<String>();
               if (syncStatus == "new") {
-                CordraObject newDO = syncProcessor.createDigitalObjectsRecursive(
+                DigitalObject newDO = syncProcessor.createDigitalObjectsRecursive(
                     (JsonElement) contentToUpload, row, jsonPathAsList);
-                UploadToCordraOperation.logger.info("Created new DO: " + newDO.id);
+                UploadOperation.logger.info("Created new DO: " + newDO.id);
               } else {
-                CordraObject updatedDO = syncProcessor.updateDigitalObjectsRecursive(
+                DigitalObject updatedDO = syncProcessor.updateDigitalObjectsRecursive(
                     (JsonElement) contentToUpload, row, jsonPathAsList);
-                UploadToCordraOperation.logger.info("Updated new DO: " + updatedDO.id);
+                UploadOperation.logger.info("Updated new DO: " + updatedDO.id);
               }
               this.syncStatusForRows.put(rowIndex, new SyncState("synchronized"));
-            } catch (CordraException e) {
-              logger.error("an CordraObjectRepositoryException was thrown!");
+            } catch (Exception e) {
+              logger.error("an Exception was thrown!");
               logger.error(e.getMessage());
               this.syncStatusForRows.put(rowIndex,
                   new SyncState("error", "Exception during upload " + e.getMessage()));
