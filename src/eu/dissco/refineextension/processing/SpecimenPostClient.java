@@ -10,7 +10,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 import java.util.Scanner;
-import org.apache.http.impl.client.CloseableHttpClient;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
@@ -74,10 +73,10 @@ public class SpecimenPostClient {
       System.out.println(headers.toString());
 
       try (Scanner scanner = new Scanner(httpUrlConnection.getInputStream())) {
-        //String responseBody = scanner.useDelimiter("\\A").next();
-        String responseBody = scanner.next();
+        String responseBody = scanner.useDelimiter("\\A").next();
         System.out.println(responseBody);
-        JsonObject body = JsonParser.parseString(responseBody).getAsJsonObject();
+        JsonObject body = new JsonParser().parse(responseBody).getAsJsonObject();
+
         if (body.has("@id")) {
           createdObject = new DigitalObject(body.get("@type").getAsString(), body);
           createdObject.id = body.get("@id").getAsString();
