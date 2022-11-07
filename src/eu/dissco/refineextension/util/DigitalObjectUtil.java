@@ -1,13 +1,12 @@
 
 package eu.dissco.refineextension.util;
 
-import java.util.ArrayList;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.google.refine.model.Row;
+import eu.dissco.refineextension.schema.DigitalObject;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonNull;
@@ -99,6 +98,11 @@ public class DigitalObjectUtil {
       if (includeTypeAndId) {
         digitalObject.add("content", subSectionObject);
         subSectionObject = digitalObject;
+      } else {
+        subSectionObject.addProperty("type", columnMappingNode.get("digitalObjectType").asText());
+        String key = "id";
+        JsonNode columnMappingNodeInner = columnMappingNode.get(key);
+        addAttributeFromRow(columnMappingNodeInner, key, row, subSectionObject);
       }
     }
     return subSectionObject;
@@ -168,57 +172,6 @@ public class DigitalObjectUtil {
         array.add((Float) value);
       }
         // do not add the attribute when it is null
-    }
-  }
-
-  public static void setColsToModify(JsonNode columnMappingNode, List<String> jsonPathAsList,
-      Map<Integer, List<String>> resultMap) {
-    JsonNode values = columnMappingNode.get("values");
-    Iterator<Map.Entry<String, JsonNode>> subSectionIter = values.fields();
-    while (subSectionIter.hasNext()) {
-      Map.Entry<String, JsonNode> kv = subSectionIter.next();
-      String key = kv.getKey();
-      List<String> jsonPathAsListCopy = new ArrayList<String>();
-      for (String item : jsonPathAsList)
-        jsonPathAsListCopy.add(item);
-      jsonPathAsListCopy.add(key);
-      JsonNode columnMappingNodeInner = kv.getValue();
-      String valueMappingType = columnMappingNodeInner.get("mappingType").asText();
-      switch (valueMappingType) {
-        case "attribute":
-          // then it is an item to map, i.e. should be the index of a column or null
-          JsonNode colIndexNode = columnMappingNodeInner.get("mapping");
-          if (colIndexNode != null && !colIndexNode.isNull() && colIndexNode.isInt()) {
-            JsonNode generateScopedIdNode = columnMappingNodeInner.get("generateScopedId");
-            if (generateScopedIdNode != null && generateScopedIdNode.asBoolean(false)) {
-              int colIndex = colIndexNode.asInt();
-              resultMap.put(colIndex, jsonPathAsListCopy);
-            }
-          }
-          break;
-
-        case "compositeAttribute":
-        case "digitalObject":
-          setColsToModify(columnMappingNodeInner, jsonPathAsListCopy, resultMap);
-          break;
-        case "arrayAttribute":
-          JsonNode arrayValues = columnMappingNodeInner.get("values");
-          Iterator<JsonNode> items = arrayValues.elements();
-          int i = 0;
-          while (items.hasNext()) {
-            List<String> jsonPathAsListCopy2 = new ArrayList<String>();
-            for (String item : jsonPathAsListCopy)
-              jsonPathAsListCopy2.add(item);
-            jsonPathAsListCopy2.add(String.valueOf(i));
-            JsonNode nextItem = items.next();
-            if(!nextItem.get("mappingType").asText().equals("attribute")) {
-              //To-Refactor: this assumes that a plain attribute in an array is never a generateScopedId 
-              setColsToModify(nextItem, jsonPathAsListCopy2, resultMap);
-            }
-            i += 1;
-          }
-          break;
-      }
     }
   }
 }

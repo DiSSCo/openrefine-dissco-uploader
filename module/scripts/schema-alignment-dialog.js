@@ -2,27 +2,27 @@ const OdsSchemaAlignmentDialog = {};
 let columnMapping;
 
 const presetsMappings = {
-	"mediaObject": {
+	"2DImageObject": {
 		"mappingType": "digitalObject",
-		"digitalObjectType": "ImageObject",
+		"digitalObjectType": "2DImageObject",
 		"id": {
 			"mappingType": "attribute",
 			"mapping": null,
 		},
 		"values": {
-			"ods:mediaUrl": {
+			"mediaUrl": {
 				"mappingType": "attribute",
 				"mapping": null,
 			},
-			"ods:imageWidth": {
+			"ods:creator": {
 				"mappingType": "attribute",
 				"mapping": null,
 			},
-			"ods:imageHeight": {
+			"cc:license": {
 				"mappingType": "attribute",
 				"mapping": null,
 			},
-			"ods:imageSizeUnit": {
+			"dc:format": {
 				"mappingType": "attribute",
 				"mapping": null,
 			}
@@ -32,44 +32,27 @@ const presetsMappings = {
 
 const defaultColumnMapping = {
 	"mappingType": "digitalObject",
-	"digitalObjectType": "DigitalSpecimen",
+	"digitalObjectType": "BotanySpecimen",
 	"id": {
 		"mappingType": "attribute",
 		"mapping": null,
 	},
-	"values": {
-		"ods:authoritative": {
-			"mappingType": "compositeAttribute",
 			"values": {
-				"ods:curatedObjectID": {
+				"physicalSpecimenID": {
 					"mappingType": "attribute",
 					"mapping": null,
 				},
-				"ods:midsLevel": {
-					"mappingType": "attribute",
-					"default": 1
-				},
-				"ods:name": {
+				"specimenName": {
 					"mappingType": "attribute",
 					"mapping": null,
 				},
-				"ods:institution": {
+				"organizationId": {
 					"mappingType": "attribute",
 					"mapping": null,
 				},
-				"ods:institutionCode": {
-					"mappingType": "attribute",
-					"mapping": null,
-				},
-				"ods:materialType": {
-					"mappingType": "attribute",
-					"mapping": null,
-				}
-			}
-		},
-		"ods:media": {
+		"ods:containsMedia": {
 			"mappingType": "arrayAttribute",
-			"values": [{ ...presetsMappings.mediaObject }]
+			"values": [{ ...presetsMappings["2DImageObject"]}]
 		},
 		"ods:extended": {
 			"mappingType": "compositeAttribute",
@@ -103,14 +86,14 @@ function createTableHtmlForCol(attributeName, pathAsArray, columns, attributeDat
 	const tdDefault = $('<td/>');
 	if (attributeData.default) {
 		tdDefault.append($("<span/>").html(attributeData.default + "&nbsp;"),
-			$("<button/>", {
-				on: {
-					click: function() {
-						attributeData.default = null;
-						OdsSchemaAlignmentDialog.buildTableHtml();
-					}
+		$("<button/>", {
+			on: {
+				click: function() {
+					attributeData.default = null;
+					OdsSchemaAlignmentDialog.buildTableHtml();
 				}
-			}).text("x"));
+			}
+		}).text("x"));
 	} else {
 		if (attributeData.generateScopedId) {
 			tdDefault.text("ID will be generated when mapping field is empty string");
@@ -255,34 +238,34 @@ function serializeSchemaRecursive(tbody, schemaObjectPart, pathAsArray, key, col
 									attrName = input.val();
 									switch (dataType) {
 										case "attribute":
-											newValue = {
+										newValue = {
+											"mappingType": "attribute",
+											"mapping": null
+										}
+										break;
+										case "compositeAttribute":
+										newValue = {
+											"mappingType": "compositeAttribute",
+											"values": {}
+										};
+										break;
+										case "digitalObject":
+										newValue = {
+											"mappingType": "digitalObject",
+											"values": {},
+											"id": {
 												"mappingType": "attribute",
 												"mapping": null
-											}
-											break;
-										case "compositeAttribute":
-											newValue = {
-												"mappingType": "compositeAttribute",
-												"values": {}
-											};
-											break;
-										case "digitalObject":
-											newValue = {
-												"mappingType": "digitalObject",
-												"values": {},
-												"id": {
-													"mappingType": "attribute",
-													"mapping": null
-												},
-												"digitalObjectType": null
-											};
-											break;
+											},
+											"digitalObjectType": null
+										};
+										break;
 										case "arrayAttribute":
-											newValue = {
-												"mappingType": "arrayAttribute",
-												"values": []
-											};
-											break;
+										newValue = {
+											"mappingType": "arrayAttribute",
+											"values": []
+										};
+										break;
 									}
 									if (dataType === "digitalObject") {
 										tdAction.append(inputHtmlType);
@@ -320,54 +303,55 @@ function serializeSchemaRecursive(tbody, schemaObjectPart, pathAsArray, key, col
 						const select = $("<select/>", {
 							on: {
 								change: function() {
+									console.log("on change select!!!" + this.value)
 									switch (this.value) {
 										case "attribute":
 										case "compositeAttribute":
 										case "arrayAttribute":
 										case "digitalObject":
-											dataType = this.value;
-											if (schemaObjectPart.mappingType === "arrayAttribute") {
-												okButton.click();
-											} else {
-												tdAction.append(inputHtmlAttr);
-												this.remove();
-											}
-											break;
-										case "preset":
-											tdAction.append(selectPreset);
+										dataType = this.value;
+										if (schemaObjectPart.mappingType === "arrayAttribute") {
+											okButton.click();
+										} else {
+											tdAction.append(inputHtmlAttr);
 											this.remove();
-											break;
+										}
+										break;
+										case "preset":
+										tdAction.append(selectPreset);
+										this.remove();
+										break;
 										case "payload":
-											dataType = this.value;
-											if (!schemaObjectPart.payloads) {
-												schemaObjectPart.payloads = {
-													"mappingType": "arrayAtrribute",
-													"values": []
+										dataType = this.value;
+										if (!schemaObjectPart.payloads) {
+											schemaObjectPart.payloads = {
+												"mappingType": "arrayAtrribute",
+												"values": []
+											}
+										}
+										schemaObjectPart.payloads.values.push({
+											"mappingType": "compositeAttribute",
+											"values": {
+												"name": {
+													"mappingType": "attribute",
+													"mapping": null
+												},
+												"filename": {
+													"mappingType": "attribute",
+													"mapping": null
+												},
+												"mediaType": {
+													"mappingType": "attribute",
+													"mapping": null
+												},
+												"path": {
+													"mappingType": "attribute",
+													"mapping": null
 												}
 											}
-											schemaObjectPart.payloads.values.push({
-												"mappingType": "compositeAttribute",
-												"values": {
-													"name": {
-														"mappingType": "attribute",
-														"mapping": null
-													},
-													"filename": {
-														"mappingType": "attribute",
-														"mapping": null
-													},
-													"mediaType": {
-														"mappingType": "attribute",
-														"mapping": null
-													},
-													"path": {
-														"mappingType": "attribute",
-														"mapping": null
-													}
-												}
-											});
-											OdsSchemaAlignmentDialog.buildTableHtml();
-											break;
+										});
+										OdsSchemaAlignmentDialog.buildTableHtml();
+										break;
 										// default do nothing
 									}
 								}
@@ -515,18 +499,18 @@ OdsSchemaAlignmentDialog.launch = function() {
 					alert("Error - schema could not be saved. Message: " + data.message);
 				}
 			})
-	});
+		});
 
-	elmts.changeTargetDOButton.click(function() {
-		elmts.changeTargetArea.show();
-	});
+		elmts.changeTargetDOButton.click(function() {
+			elmts.changeTargetArea.show();
+		});
 
-	elmts.changeTargetDOEnter.click(function() {
-		columnMapping.digitalObjectType = elmts.changeTargetDOInput.val();
-		elmts.changeTargetArea.hide();
+		elmts.changeTargetDOEnter.click(function() {
+			columnMapping.digitalObjectType = elmts.changeTargetDOInput.val();
+			elmts.changeTargetArea.hide();
+			OdsSchemaAlignmentDialog.buildTableHtml();
+		});
+
+		OdsSchemaAlignmentDialog.initColumnMapping(false);
 		OdsSchemaAlignmentDialog.buildTableHtml();
-	});
-
-	OdsSchemaAlignmentDialog.initColumnMapping(false);
-	OdsSchemaAlignmentDialog.buildTableHtml();
-};
+	};

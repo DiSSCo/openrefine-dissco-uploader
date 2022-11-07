@@ -10,6 +10,8 @@ public class SyncResult {
   protected String message;
   @JsonProperty("results")
   Map<Integer, SyncState> results;
+  @JsonProperty("comparisonSummary")
+  Map<String, Integer> comparisonSummary;
 
   public SyncResult(String code, String message) {
     this.code = code;
@@ -17,10 +19,11 @@ public class SyncResult {
     this.results = null;
   }
 
-  public SyncResult(Map<Integer, SyncState> results) {
+  public SyncResult(Map<Integer, SyncState> results, Map<String, Integer> comparisonSummary) {
     this.code = "ok";
     this.message = null;
     this.results = results;
+    this.comparisonSummary = comparisonSummary;
   }
 }
 

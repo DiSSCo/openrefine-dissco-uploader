@@ -57,6 +57,7 @@ function init() {
 			"scripts/menu-bar-extension.js",
 			"scripts/configuration-dialog.js",
 			"scripts/schema-alignment-dialog.js",
+			"scripts/changes-management-component.js",
 			"scripts/synchronization-dialog.js",
 		]
 	);

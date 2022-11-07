@@ -1,7 +1,7 @@
 package eu.dissco.refineextension.commands;
 
 import com.fasterxml.jackson.databind.JsonNode;
-
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.google.refine.browsing.Engine;
 import com.google.refine.commands.Command;
 import com.google.refine.model.Project;
@@ -49,17 +49,18 @@ public class PrepareForSynchronizationCommand extends Command {
       // To-Do check that schema has ColumnMapping
       JsonNode columnMapping = savedSchema.getColumnMapping();
       Map<Integer, SyncState> syncStatusForRows = new HashMap<Integer, SyncState>();
+      Map<String, Integer> comparisonSummary = new HashMap<String, Integer>();
       response.setCharacterEncoding("UTF-8");
       response.setHeader("Content-Type", "application/json");
       FilteredRows filteredRows = engine.getAllFilteredRows();
-      filteredRows.accept(project,
-          new MyRowVisitor(columnMapping, syncStatusForRows, authToken, specimenUrl));
+      filteredRows.accept(project, new MyRowVisitor(columnMapping, syncStatusForRows,
+          comparisonSummary, authToken, specimenUrl));
 
       // preserve the pre-sync results for the synchronization command
       savedSchema.setSyncStatusForRows(syncStatusForRows);
       project.overlayModels.put(DisscoUploadSchema.overlayModelKey, savedSchema);
 
-      respondJSON(response, new SyncResult(syncStatusForRows));
+      respondJSON(response, new SyncResult(syncStatusForRows, comparisonSummary));
     } catch (Exception e) {
       e.printStackTrace();
       respondException(response, e);
@@ -70,13 +71,15 @@ public class PrepareForSynchronizationCommand extends Command {
 
     private JsonNode columnMapping;
     private Map<Integer, SyncState> syncStatusForRows;
+    private Map<String, Integer> comparisonSummary;
     SpecimenProcessor processorClient;
 
     public MyRowVisitor(JsonNode columnMapping, Map<Integer, SyncState> syncStatusForRows,
-        String authToken, String specimenUrl) {
+        Map<String, Integer> comparisonSummary, String authToken, String specimenUrl) {
       this.columnMapping = columnMapping;
       this.syncStatusForRows = syncStatusForRows;
-      this.processorClient = new SpecimenProcessor(authToken, this.columnMapping, null, specimenUrl);
+      this.processorClient = new SpecimenProcessor(authToken, this.columnMapping, specimenUrl);
+      this.comparisonSummary = comparisonSummary;
     }
 
     @Override
@@ -87,7 +90,7 @@ public class PrepareForSynchronizationCommand extends Command {
     @Override
     public boolean visit(Project project, int rowIndex, Row row) {
       logger.info("Checking sync state for row " + String.valueOf(rowIndex));
-      SyncState rowSyncState = new SyncState();
+      SyncState rowSyncState;
       JsonObject digitalObjectContent = null;
       String id = "";
       JsonNode idColIndexNode = this.columnMapping.get("id").get("mapping");
@@ -101,7 +104,7 @@ public class PrepareForSynchronizationCommand extends Command {
         if (digitalObjectContent != null) {
           JsonObject doContentToUpload =
               DigitalObjectUtil.rowToJsonObject(row, this.columnMapping, false);
-          JsonNode differencesPatch = null;
+          ArrayNode differencesPatch = null;
           try {
             differencesPatch =
                 processorClient.getDigitalObjectDataDiff(digitalObjectContent, doContentToUpload);
@@ -114,6 +117,13 @@ public class PrepareForSynchronizationCommand extends Command {
           if (differencesPatch != null && differencesPatch.size() > 0) {
             // JSONs are not equal, Object will be updated
             rowSyncState = new SyncState("change", "", differencesPatch);
+            for (int i = 0; i < differencesPatch.size(); i++) {
+              JsonNode jsonOperation = differencesPatch.get(i);
+              // key is a combination of the operation and the path
+              String changeKey = jsonOperation.get("op").asText() + "-" + jsonOperation.get("path").asText();
+              this.comparisonSummary.merge(changeKey, 1, Integer::sum);
+            }
+
           } else {
             rowSyncState = new SyncState("synchronized");
           }

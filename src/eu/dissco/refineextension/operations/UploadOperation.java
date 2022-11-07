@@ -193,7 +193,6 @@ public class UploadOperation extends EngineDependentOperation {
         private JsonNode columnMapping;
         Map<Integer, SyncState> syncStatusForRows;
         private String authToken;
-        Map<Integer, List<String>> colsToModifyAfter;
         private String specimenUrl;
 
         public MyRowVisitor(JsonNode columnMapping, Map<Integer, SyncState> syncStatusForRows,
@@ -202,11 +201,6 @@ public class UploadOperation extends EngineDependentOperation {
           this.syncStatusForRows = syncStatusForRows;
           this.authToken = authToken;
           this.specimenUrl = specimenUrl;
-
-          List<String> jsonPathAsList = new ArrayList<String>();
-          Map<Integer, List<String>> colsToModifyAfter = new HashMap<Integer, List<String>>();
-          DigitalObjectUtil.setColsToModify(columnMapping, jsonPathAsList, colsToModifyAfter);
-          this.colsToModifyAfter = colsToModifyAfter;
         }
 
         @Override
@@ -216,8 +210,7 @@ public class UploadOperation extends EngineDependentOperation {
 
         @Override
         public boolean visit(Project project, int rowIndex, Row row) {
-          SpecimenProcessor syncProcessor = new SpecimenProcessor(authToken, this.columnMapping,
-              this.colsToModifyAfter, this.specimenUrl);
+          SpecimenProcessor syncProcessor = new SpecimenProcessor(authToken, this.columnMapping, this.specimenUrl);
 
 
           SyncState syncState = this.syncStatusForRows.get(rowIndex);
@@ -227,13 +220,14 @@ public class UploadOperation extends EngineDependentOperation {
                 DigitalObjectUtil.rowToJsonObject(row, this.columnMapping, true);
             try {
               List<String> jsonPathAsList = new ArrayList<String>();
+              List<SpecimenProcessor.DependentObjectTuple> dependentObjects = new ArrayList<SpecimenProcessor.DependentObjectTuple>();
               if (syncStatus == "new") {
                 DigitalObject newDO = syncProcessor.createDigitalObjectsRecursive(
-                    (JsonElement) contentToUpload, row, jsonPathAsList);
+                    (JsonElement) contentToUpload, row, jsonPathAsList, dependentObjects);
                 UploadOperation.logger.info("Created new DO: " + newDO.id);
               } else {
                 DigitalObject updatedDO = syncProcessor.updateDigitalObjectsRecursive(
-                    (JsonElement) contentToUpload, row, jsonPathAsList);
+                    (JsonElement) contentToUpload, row, jsonPathAsList, dependentObjects);
                 UploadOperation.logger.info("Updated new DO: " + updatedDO.id);
               }
               this.syncStatusForRows.put(rowIndex, new SyncState("synchronized"));

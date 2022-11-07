@@ -181,6 +181,8 @@ SynchronizationDialog.initWithAuthInfo = function(isAuthenticated) {
 						elmts.synchronizationInfoText.text(`Ready for syncing: ${inSyncCount} objects are in sync, will upload ${newCount} new objects to nsidr.org, found ${updateCount} objects with changes - please revise these changes carefully, if you synchronize the remote objects will be overwritten with your local data`);
 						elmts.syncButton.attr("disabled", false);
 						elmts.syncButton.removeClass("button-disabled");
+						
+						ChangesManagementComponent.start(elmts, data.comparisonSummary);
 					}
 				},
 				onFinallyDone: function() {

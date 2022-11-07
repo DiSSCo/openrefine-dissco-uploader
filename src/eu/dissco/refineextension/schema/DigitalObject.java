@@ -7,6 +7,9 @@ public class DigitalObject {
   public String type;
   public JsonObject content;
   
+  public DigitalObject() {
+  }
+  
   public DigitalObject(String type, JsonObject content) {
     this.type = type;
     this.content = content;    

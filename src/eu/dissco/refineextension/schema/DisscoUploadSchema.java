@@ -27,7 +27,7 @@ public class DisscoUploadSchema implements OverlayModel {
   protected String authRealm = "dissco";
 
   @JsonProperty("authClientId")
-  protected String authClientId = "openrefine";
+  protected String authClientId = "openrefine-demo";
 
   @JsonProperty("numberOfProcessingThreads")
   protected int numberOfProcessingThreads = 1;
