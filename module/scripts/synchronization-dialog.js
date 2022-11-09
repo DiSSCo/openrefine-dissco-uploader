@@ -1,5 +1,11 @@
-
 const SynchronizationDialog = {};
+
+const defaultConfig = {
+	authServerUrl: "https://login-demo.dissco.eu/auth",
+	authRealm: "dissco",
+	authClientId: "openrefine-demo"
+}
+
 let wasReconciledThisSession = false;
 let syncStatesResultData = null;
 
@@ -39,21 +45,20 @@ SynchronizationDialog._updateTableRowsWithSyncStates = function() {
 }
 
 SynchronizationDialog.launch = function() {
-	const disscoUploadSchema = theProject.overlayModels.disscoUploadSchema;
+	let disscoUploadSchema = theProject.overlayModels.disscoUploadSchema;
 	if(disscoUploadSchema === undefined ){
-		alert("You must check and save the configuration of the dissco uploader plugin once before you can begin.");
-		return;
+		disscoUploadSchema = defaultConfig;
 	}
 	const initOptions = {
 		url: (disscoUploadSchema && disscoUploadSchema.authServerUrl) ?? "",
 		realm: (disscoUploadSchema && disscoUploadSchema.authRealm) ?? "",
 		clientId: (disscoUploadSchema && disscoUploadSchema.authClientId) ?? "",
 	};
-
+	
 	if (!keycloak || !keycloak.authenticated) {
 		keycloak = Keycloak(initOptions);
 	}
-
+	
 	if (!keycloak.token) {
 		keycloak
 			.init({
@@ -208,6 +213,11 @@ SynchronizationDialog.initWithAuthInfo = function(isAuthenticated) {
 			{
 				onFinallyDone: function() {
 					// this callback does not receive the data
+					
+					// setting a small timeout to prevent that the result
+					// sync status is fetched before it could have been 
+					// persisted in the overlaymodel
+					setTimeout(function(){
 
 					Refine.postProcess(
 						"dissco-uploader",
@@ -239,9 +249,12 @@ SynchronizationDialog.initWithAuthInfo = function(isAuthenticated) {
 							},
 							onFinallyDone: function() {
 								SynchronizationDialog._updateTableRowsWithSyncStates();
+								
 							}
 						}
 					);
+					}, 3500);
+					
 				},
 				onError: function(e) {
 					console.log("perform-edits on error", e);

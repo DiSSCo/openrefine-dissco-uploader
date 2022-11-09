@@ -37,24 +37,35 @@ const defaultColumnMapping = {
 		"mappingType": "attribute",
 		"mapping": null,
 	},
-			"values": {
-				"physicalSpecimenID": {
-					"mappingType": "attribute",
-					"mapping": null,
-				},
-				"specimenName": {
-					"mappingType": "attribute",
-					"mapping": null,
-				},
-				"organizationId": {
-					"mappingType": "attribute",
-					"mapping": null,
-				},
-		"ods:containsMedia": {
-			"mappingType": "arrayAttribute",
-			"values": [{ ...presetsMappings["2DImageObject"]}]
+	"values": {
+		"physicalSpecimenId": {
+			"mappingType": "attribute",
+			"mapping": null,
 		},
-		"ods:extended": {
+		"physicalSpecimenIdType": {
+			"mappingType": "attribute",
+			"mapping": null,
+			"default": "cetaf"
+		},
+		"specimenName": {
+			"mappingType": "attribute",
+			"mapping": null,
+		},
+		"organizationId": {
+			"mappingType": "attribute",
+			"mapping": null,
+			"default": "-enter RORID here-"
+		},
+		"sourceSystemId": {
+			"mappingType": "attribute",
+			"mapping": null,
+			"default": "openrefine"
+		},
+		"data": {
+			"mappingType": "compositeAttribute",
+			"values": {}
+		},
+		"originalData": {
 			"mappingType": "compositeAttribute",
 			"values": {}
 		}
