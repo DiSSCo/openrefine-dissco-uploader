@@ -116,9 +116,6 @@ public class SpecimenPostClient {
         System.out.println("result: " + result);
         // Ensure that the stream is fully consumed
         EntityUtils.consume(entity);
-        System.out.println("==============");
-        System.out.println("No changes were necessary to specimen with id");
-        System.out.println(result.substring(0, 45));
         if(!result.substring(0, 45).equals("No changes were necessary to specimen with id")) {
           JsonObject body = new JsonParser().parse(result).getAsJsonObject();
           if (body.has("id")) {

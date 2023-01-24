@@ -47,6 +47,8 @@ function init() {
 	RefineServlet.registerCommand(module, "perform-edits", new Packages.eu.dissco.refineextension.commands.PerformEditsCommand());
 	RefineServlet.registerCommand(module, "prepare-for-synchronization", new Packages.eu.dissco.refineextension.commands.PrepareForSynchronizationCommand());
 	RefineServlet.registerCommand(module, "fetch-synchronization-status", new Packages.eu.dissco.refineextension.commands.GetSynchronizationResultCommand());
+	RefineServlet.registerCommand(module, "perform-change", new Packages.eu.dissco.refineextension.commands.PerformChangeCommand());
+	RefineServlet.registerCommand(module, "perform-change-create", new Packages.eu.dissco.refineextension.commands.PerformChangeCreateCommand());
 	// Script files to inject into /project page
 	ClientSideResourceManager.addPaths(
 		"project/scripts",

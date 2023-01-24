@@ -224,6 +224,16 @@ public class SpecimenProcessor {
       return null;
     }
   }
+  
+  public String searchHandleByPhysicalSpecimenId(String physicalSpecimenId) {
+	    try {
+	      return this.specimenGetClient.searchHandleByPhysicalSpecimenId(physicalSpecimenId);
+	    } catch (IOException e) {
+	      // TODO Auto-generated catch block
+	      e.printStackTrace();
+	      return null;
+	    }
+	  }
 
   private int getIdMappingByJsonPathAsList(List<String> jsonPathAsList) {
     JsonNode columnMappingNode = this.columnMapping;

@@ -18,7 +18,7 @@ public class DisscoUploadSchema implements OverlayModel {
   public static String overlayModelKey = "disscoUploadSchema";
 
   @JsonProperty("specimenServerUrl")
-  protected String specimenServerUrl = "https://sandbox.dissco.tech/api/v1/specimen";
+  protected String specimenServerUrl = "https://sandbox.dissco.tech/api/v1/specimens";
 
   @JsonProperty("authServerUrl")
   protected String authServerUrl = "https://login-demo.dissco.eu/auth";
